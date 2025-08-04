@@ -1,19 +1,20 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Mail, Lock, Chrome, AlertCircle, Loader2, Stethoscope, Shield } from "lucide-react"
+import { ArrowLeft, Mail, Lock, Chrome, AlertCircle, Loader2, Stethoscope } from "lucide-react"
+import { signIn, getCurrentDoctor } from "@/lib/supabase"
 
 export default function DoctorLoginPage() {
+  const router = useRouter()
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -31,15 +32,42 @@ export default function DoctorLoginPage() {
     setIsSubmitting(true)
     setSubmitError(null)
 
-    // Mock doctor login - in a real app, this would authenticate with backend
-    setTimeout(() => {
-      setSubmitError("Doctor portal is coming soon! Please use the contact form to join our network.")
+    if (!formData.email.trim() || !formData.password) {
+      setSubmitError("Please enter both email and password")
       setIsSubmitting(false)
-    }, 1000)
+      return
+    }
+
+    try {
+      const { data, error } = await signIn(formData.email.trim(), formData.password)
+
+      if (error) {
+        setSubmitError(error.message)
+      } else if (data?.user) {
+        // Check if this user is a doctor
+        const { doctor, error: doctorError } = await getCurrentDoctor()
+
+        if (doctorError) {
+          setSubmitError("Error verifying doctor account. Please try again.")
+        } else if (!doctor) {
+          setSubmitError(
+            "This account is not registered as a doctor. Please use the patient login or register as a doctor.",
+          )
+        } else {
+          // Successful doctor login
+          router.push("/doctor/dashboard")
+        }
+      }
+    } catch (err) {
+      console.error("Login error:", err)
+      setSubmitError("An unexpected error occurred. Please try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleGoogleLogin = () => {
-    setSubmitError("Doctor portal is coming soon! Please use the contact form to join our network.")
+    setSubmitError("Google login for doctors is coming soon! Please use email/password for now.")
   }
 
   return (
@@ -58,24 +86,11 @@ export default function DoctorLoginPage() {
             <div className="mx-auto mb-4 w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
               <Stethoscope className="h-8 w-8 text-green-600" />
             </div>
-            <CardTitle className="text-2xl flex items-center justify-center gap-2">
-              Doctor Portal
-              <Badge variant="secondary" className="text-xs">
-                Coming Soon
-              </Badge>
-            </CardTitle>
+            <CardTitle className="text-2xl flex items-center justify-center gap-2">Doctor Portal</CardTitle>
             <p className="text-gray-600">Secure access for healthcare professionals</p>
           </CardHeader>
 
           <CardContent className="space-y-6">
-            <Alert>
-              <Shield className="h-4 w-4" />
-              <AlertDescription>
-                The doctor portal is currently under development. If you're a healthcare professional interested in
-                joining our network, please use our contact form.
-              </AlertDescription>
-            </Alert>
-
             {submitError && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -88,10 +103,9 @@ export default function DoctorLoginPage() {
               variant="outline"
               className="w-full flex items-center gap-2 bg-transparent"
               size="lg"
-              disabled
             >
               <Chrome className="h-5 w-5" />
-              Continue with Google (Coming Soon)
+              Continue with Google
             </Button>
 
             <div className="relative">
@@ -115,7 +129,7 @@ export default function DoctorLoginPage() {
                   placeholder="doctor@hospital.com"
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
-                  disabled
+                  required
                 />
               </div>
 
@@ -130,27 +144,33 @@ export default function DoctorLoginPage() {
                   placeholder="Enter your password"
                   value={formData.password}
                   onChange={(e) => handleInputChange("password", e.target.value)}
-                  disabled
+                  required
                 />
               </div>
 
-              <Button type="submit" size="lg" className="w-full" disabled>
+              <div className="flex items-center justify-between">
+                <Link href="/auth/forgot-password" className="text-sm text-green-600 hover:text-green-800">
+                  Forgot password?
+                </Link>
+              </div>
+
+              <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Signing In...
                   </>
                 ) : (
-                  "Sign In (Coming Soon)"
+                  "Sign In"
                 )}
               </Button>
             </form>
 
             <div className="text-center space-y-4">
               <div className="text-sm">
-                <span className="text-gray-600">Want to join our network? </span>
-                <Link href="/contact" className="text-green-600 hover:text-green-800 font-medium">
-                  Apply here
+                <span className="text-gray-600">Don't have a doctor account? </span>
+                <Link href="/auth/doctor/register" className="text-green-600 hover:text-green-800 font-medium">
+                  Register here
                 </Link>
               </div>
 
