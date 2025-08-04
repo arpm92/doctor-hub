@@ -297,33 +297,13 @@ export const doctorSignUp = async (
 
         // The user might still have been created in auth.users
         if (data.user) {
-          console.log("User was created despite database error, attempting manual doctor insert...")
-
-          // Wait a moment for any async operations
-          await new Promise((resolve) => setTimeout(resolve, 1000))
+          console.log("User was created despite database error, attempting manual doctor creation via RPC...")
 
           try {
-            // First, sign in the user so they have proper auth context
-            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-              email,
-              password,
-            })
-
-            if (signInError) {
-              console.error("Failed to sign in for manual insert:", signInError)
-              return {
-                data: null,
-                error: {
-                  message: "Account created but profile setup failed. Please try signing in manually.",
-                },
-              }
-            }
-
-            console.log("Signed in successfully, attempting manual doctor insert...")
-
-            const { error: insertError } = await supabase.from("doctors").insert({
-              id: data.user.id,
-              email: data.user.email!,
+            // Use the RPC function to create the doctor profile
+            const { data: doctorProfile, error: rpcError } = await supabase.rpc("create_doctor_profile", {
+              user_id: data.user.id,
+              user_email: data.user.email!,
               first_name: doctorData.firstName.trim(),
               last_name: doctorData.lastName.trim(),
               phone: cleanPhone || null,
@@ -331,11 +311,10 @@ export const doctorSignUp = async (
               license_number: doctorData.licenseNumber.trim(),
               years_experience: doctorData.yearsExperience,
               bio: doctorData.bio?.trim() || null,
-              status: "pending",
             })
 
-            if (insertError) {
-              console.error("Manual doctor insert failed:", insertError)
+            if (rpcError) {
+              console.error("Manual doctor creation via RPC failed:", rpcError)
               return {
                 data: null,
                 error: {
@@ -343,11 +322,11 @@ export const doctorSignUp = async (
                 },
               }
             } else {
-              console.log("Manual doctor insert successful!")
+              console.log("Manual doctor creation via RPC successful!")
               return { data, error: null }
             }
-          } catch (insertErr) {
-            console.error("Manual insert exception:", insertErr)
+          } catch (rpcErr) {
+            console.error("RPC exception:", rpcErr)
             return {
               data: null,
               error: {
@@ -393,7 +372,7 @@ export const doctorSignUp = async (
       console.log("Doctor registration successful!")
 
       // Wait a moment for the trigger to complete
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, 2000))
 
       // Verify doctor record was created
       console.log("Verifying doctor record...")
@@ -405,24 +384,13 @@ export const doctorSignUp = async (
 
       if (doctorError) {
         console.log("Doctor record verification failed:", doctorError)
-        console.log("Attempting to create doctor record manually...")
+        console.log("Attempting to create doctor record manually via RPC...")
 
         try {
-          // Sign in the user first to establish proper auth context
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          })
-
-          if (signInError) {
-            console.error("Failed to sign in for verification:", signInError)
-            // Don't fail the registration, user can complete profile later
-            return { data, error: null }
-          }
-
-          const { error: insertError } = await supabase.from("doctors").insert({
-            id: data.user.id,
-            email: data.user.email!,
+          // Use the RPC function to create the doctor profile
+          const { data: doctorProfile, error: rpcError } = await supabase.rpc("create_doctor_profile", {
+            user_id: data.user.id,
+            user_email: data.user.email!,
             first_name: doctorData.firstName.trim(),
             last_name: doctorData.lastName.trim(),
             phone: cleanPhone || null,
@@ -430,17 +398,16 @@ export const doctorSignUp = async (
             license_number: doctorData.licenseNumber.trim(),
             years_experience: doctorData.yearsExperience,
             bio: doctorData.bio?.trim() || null,
-            status: "pending",
           })
 
-          if (insertError) {
-            console.error("Manual doctor creation failed:", insertError)
+          if (rpcError) {
+            console.error("Manual doctor creation via RPC failed:", rpcError)
             // Don't fail the registration, user can complete profile later
           } else {
-            console.log("Manual doctor creation successful!")
+            console.log("Manual doctor creation via RPC successful!")
           }
-        } catch (manualErr) {
-          console.error("Manual creation exception:", manualErr)
+        } catch (rpcErr) {
+          console.error("RPC creation exception:", rpcErr)
           // Don't fail the registration
         }
       } else {

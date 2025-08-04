@@ -41,9 +41,15 @@ export default function DoctorLoginPage() {
       const { data, error } = await signIn(formData.email.trim(), formData.password)
 
       if (error) {
-        setSubmitError(error.message)
+        if (error.message.includes("Invalid login credentials")) {
+          setSubmitError("Invalid email or password. Please check your credentials and try again.")
+        } else if (error.message.includes("Email not confirmed")) {
+          setSubmitError("Please check your email and click the confirmation link before signing in.")
+        } else {
+          setSubmitError(error.message)
+        }
       } else if (data?.user) {
-        // Redirect to doctor dashboard
+        // Successful login - redirect to doctor dashboard
         router.push("/doctor/dashboard")
       }
     } catch (err) {
@@ -86,7 +92,7 @@ export default function DoctorLoginPage() {
               <div className="space-y-2">
                 <Label htmlFor="email" className="flex items-center gap-2">
                   <Mail className="h-4 w-4" />
-                  Email
+                  Professional Email
                 </Label>
                 <Input
                   id="email"
@@ -126,7 +132,7 @@ export default function DoctorLoginPage() {
             </form>
 
             <div className="text-center space-y-4">
-              <Link href="/auth/forgot-password" className="text-sm text-green-600 hover:text-green-800">
+              <Link href="/auth/forgot-password" className="text-sm text-green-600 hover:text-green-800 font-medium">
                 Forgot your password?
               </Link>
 
@@ -138,13 +144,13 @@ export default function DoctorLoginPage() {
               </div>
 
               <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-medium text-blue-900 mb-2">For Patients</h3>
-                <p className="text-sm text-blue-700 mb-2">
-                  Looking for patient services? Patient portal is coming soon.
-                </p>
-                <Link href="/contact" className="text-sm text-blue-600 hover:text-blue-800 underline">
-                  Contact us for assistance
-                </Link>
+                <h3 className="font-medium text-blue-900 mb-2">For Healthcare Professionals</h3>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• Manage your professional profile</li>
+                  <li>• View and respond to patient inquiries</li>
+                  <li>• Access your appointment schedule</li>
+                  <li>• Update availability and services</li>
+                </ul>
               </div>
             </div>
           </CardContent>

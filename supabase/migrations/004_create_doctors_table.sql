@@ -40,6 +40,7 @@ DROP POLICY IF EXISTS "Doctors can view their own profile" ON doctors;
 DROP POLICY IF EXISTS "Doctors can update their own profile" ON doctors;
 DROP POLICY IF EXISTS "Doctors can insert their own profile" ON doctors;
 DROP POLICY IF EXISTS "Allow service role to insert doctors" ON doctors;
+DROP POLICY IF EXISTS "Allow authenticated users to insert their own doctor profile" ON doctors;
 
 -- Create policies for doctors
 CREATE POLICY "Doctors can view their own profile" ON doctors
@@ -48,19 +49,23 @@ CREATE POLICY "Doctors can view their own profile" ON doctors
 CREATE POLICY "Doctors can update their own profile" ON doctors
   FOR UPDATE USING (auth.uid() = id);
 
-CREATE POLICY "Doctors can insert their own profile" ON doctors
+-- Allow authenticated users to insert their own doctor profile
+CREATE POLICY "Allow authenticated users to insert their own doctor profile" ON doctors
   FOR INSERT WITH CHECK (auth.uid() = id);
 
--- Allow service role to insert doctors (for manual fallback)
-CREATE POLICY "Allow service role to insert doctors" ON doctors
-  FOR INSERT WITH CHECK (auth.role() = 'service_role');
+-- Allow service role full access (for admin operations)
+CREATE POLICY "Allow service role full access" ON doctors
+  FOR ALL USING (auth.role() = 'service_role');
 
--- Create function to handle new doctor registration
+-- Create function to handle new doctor registration with proper security
 CREATE OR REPLACE FUNCTION public.handle_new_doctor()
 RETURNS TRIGGER AS $$
+DECLARE
+  doctor_data JSONB;
 BEGIN
   -- Only create doctor record if user_metadata indicates this is a doctor
   IF NEW.raw_user_meta_data->>'user_type' = 'doctor' THEN
+    -- Use security definer to bypass RLS for this operation
     INSERT INTO public.doctors (
       id, 
       email, 
@@ -70,7 +75,8 @@ BEGIN
       specialty, 
       license_number,
       years_experience,
-      bio
+      bio,
+      status
     )
     VALUES (
       NEW.id,
@@ -81,14 +87,17 @@ BEGIN
       COALESCE(NEW.raw_user_meta_data->>'specialty', ''),
       COALESCE(NEW.raw_user_meta_data->>'license_number', ''),
       COALESCE((NEW.raw_user_meta_data->>'years_experience')::INTEGER, 0),
-      NEW.raw_user_meta_data->>'bio'
+      NEW.raw_user_meta_data->>'bio',
+      'pending'
     );
+    
+    RAISE LOG 'Successfully created doctor record for user %', NEW.id;
   END IF;
   RETURN NEW;
 EXCEPTION
   WHEN OTHERS THEN
     -- Log the error but don't fail the user creation
-    RAISE WARNING 'Failed to create doctor record: %', SQLERRM;
+    RAISE WARNING 'Failed to create doctor record for user %: %', NEW.id, SQLERRM;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -100,3 +109,56 @@ DROP TRIGGER IF EXISTS on_auth_doctor_created ON auth.users;
 CREATE TRIGGER on_auth_doctor_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_doctor();
+
+-- Create a function for manual doctor creation that bypasses RLS
+CREATE OR REPLACE FUNCTION public.create_doctor_profile(
+  user_id UUID,
+  user_email TEXT,
+  first_name TEXT,
+  last_name TEXT,
+  phone TEXT DEFAULT NULL,
+  specialty TEXT DEFAULT '',
+  license_number TEXT DEFAULT '',
+  years_experience INTEGER DEFAULT 0,
+  bio TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  result JSONB;
+BEGIN
+  -- Insert the doctor record
+  INSERT INTO public.doctors (
+    id,
+    email,
+    first_name,
+    last_name,
+    phone,
+    specialty,
+    license_number,
+    years_experience,
+    bio,
+    status
+  )
+  VALUES (
+    user_id,
+    user_email,
+    first_name,
+    last_name,
+    phone,
+    specialty,
+    license_number,
+    years_experience,
+    bio,
+    'pending'
+  )
+  RETURNING to_jsonb(doctors.*) INTO result;
+  
+  RETURN result;
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE EXCEPTION 'Failed to create doctor profile: %', SQLERRM;
+END;
+$$;
