@@ -31,7 +31,6 @@ export interface Doctor {
   last_name: string
   phone?: string
   specialty: string
-  license_number: string
   years_experience: number
   bio?: string
   education?: string[]
@@ -234,7 +233,6 @@ export const doctorSignUp = async (
     lastName: string
     phone?: string
     specialty: string
-    licenseNumber: string
     yearsExperience: number
     bio?: string
   },
@@ -253,10 +251,6 @@ export const doctorSignUp = async (
       return { data: null, error: { message: "Medical specialty is required" } }
     }
 
-    if (!doctorData.licenseNumber) {
-      return { data: null, error: { message: "Medical license number is required" } }
-    }
-
     // Clean phone number - remove if empty
     const cleanPhone = doctorData.phone?.trim() || undefined
 
@@ -271,7 +265,6 @@ export const doctorSignUp = async (
           last_name: doctorData.lastName.trim(),
           phone: cleanPhone || null,
           specialty: doctorData.specialty.trim(),
-          license_number: doctorData.licenseNumber.trim(),
           years_experience: doctorData.yearsExperience,
           bio: doctorData.bio?.trim() || null,
         },
@@ -308,7 +301,6 @@ export const doctorSignUp = async (
               last_name: doctorData.lastName.trim(),
               phone: cleanPhone || null,
               specialty: doctorData.specialty.trim(),
-              license_number: doctorData.licenseNumber.trim(),
               years_experience: doctorData.yearsExperience,
               bio: doctorData.bio?.trim() || null,
             })
@@ -347,13 +339,6 @@ export const doctorSignUp = async (
         return { data: null, error: { message: "An account with this email already exists. Please sign in instead." } }
       }
 
-      if (error.message.includes("duplicate key") && error.message.includes("license_number")) {
-        return {
-          data: null,
-          error: { message: "This license number is already registered. Please contact support if this is an error." },
-        }
-      }
-
       if (error.message.includes("Password")) {
         return { data: null, error: { message: "Password does not meet security requirements." } }
       }
@@ -372,7 +357,7 @@ export const doctorSignUp = async (
       console.log("Doctor registration successful!")
 
       // Wait a moment for the trigger to complete
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      await new Promise((resolve) => setTimeout(resolve, 3000))
 
       // Verify doctor record was created
       console.log("Verifying doctor record...")
@@ -395,7 +380,6 @@ export const doctorSignUp = async (
             last_name: doctorData.lastName.trim(),
             phone: cleanPhone || null,
             specialty: doctorData.specialty.trim(),
-            license_number: doctorData.licenseNumber.trim(),
             years_experience: doctorData.yearsExperience,
             bio: doctorData.bio?.trim() || null,
           })

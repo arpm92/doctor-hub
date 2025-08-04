@@ -10,7 +10,6 @@ import {
   Mail,
   Phone,
   Stethoscope,
-  FileText,
   GraduationCap,
   Clock,
   CheckCircle,
@@ -272,13 +271,6 @@ export default function DoctorDashboard() {
                       <div>
                         <p className="text-sm text-gray-500">Specialty</p>
                         <p className="font-medium">{doctor.specialty}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <p className="text-sm text-gray-500">License Number</p>
-                        <p className="font-medium">{doctor.license_number}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">

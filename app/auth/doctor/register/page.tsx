@@ -56,7 +56,6 @@ export default function DoctorRegisterPage() {
     password: "",
     confirmPassword: "",
     specialty: "",
-    licenseNumber: "",
     yearsExperience: "",
     bio: "",
   })
@@ -76,7 +75,6 @@ export default function DoctorRegisterPage() {
     if (!formData.password) return "Password is required"
     if (formData.password !== formData.confirmPassword) return "Passwords do not match"
     if (!formData.specialty) return "Medical specialty is required"
-    if (!formData.licenseNumber.trim()) return "Medical license number is required"
     if (!formData.yearsExperience) return "Years of experience is required"
 
     const experience = Number.parseInt(formData.yearsExperience)
@@ -103,7 +101,6 @@ export default function DoctorRegisterPage() {
         lastName: formData.lastName.trim(),
         phone: formData.phone.trim() || undefined,
         specialty: formData.specialty,
-        licenseNumber: formData.licenseNumber.trim(),
         yearsExperience: Number.parseInt(formData.yearsExperience),
         bio: formData.bio.trim() || undefined,
       })
@@ -297,21 +294,6 @@ export default function DoctorRegisterPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="licenseNumber" className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Medical License Number *
-                  </Label>
-                  <Input
-                    id="licenseNumber"
-                    type="text"
-                    placeholder="Enter your license number"
-                    value={formData.licenseNumber}
-                    onChange={(e) => handleInputChange("licenseNumber", e.target.value)}
-                    required
-                  />
                 </div>
 
                 <div className="space-y-2">

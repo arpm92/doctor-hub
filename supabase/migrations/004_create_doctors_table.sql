@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS doctors (
   last_name TEXT NOT NULL,
   phone TEXT,
   specialty TEXT NOT NULL,
-  license_number TEXT UNIQUE NOT NULL,
   years_experience INTEGER DEFAULT 0,
   bio TEXT,
   education TEXT[],
@@ -41,6 +40,7 @@ DROP POLICY IF EXISTS "Doctors can update their own profile" ON doctors;
 DROP POLICY IF EXISTS "Doctors can insert their own profile" ON doctors;
 DROP POLICY IF EXISTS "Allow service role to insert doctors" ON doctors;
 DROP POLICY IF EXISTS "Allow authenticated users to insert their own doctor profile" ON doctors;
+DROP POLICY IF EXISTS "Allow service role full access" ON doctors;
 
 -- Create policies for doctors
 CREATE POLICY "Doctors can view their own profile" ON doctors
@@ -60,8 +60,6 @@ CREATE POLICY "Allow service role full access" ON doctors
 -- Create function to handle new doctor registration with proper security
 CREATE OR REPLACE FUNCTION public.handle_new_doctor()
 RETURNS TRIGGER AS $$
-DECLARE
-  doctor_data JSONB;
 BEGIN
   -- Only create doctor record if user_metadata indicates this is a doctor
   IF NEW.raw_user_meta_data->>'user_type' = 'doctor' THEN
@@ -73,7 +71,6 @@ BEGIN
       last_name, 
       phone, 
       specialty, 
-      license_number,
       years_experience,
       bio,
       status
@@ -85,7 +82,6 @@ BEGIN
       COALESCE(NEW.raw_user_meta_data->>'last_name', ''),
       NEW.raw_user_meta_data->>'phone',
       COALESCE(NEW.raw_user_meta_data->>'specialty', ''),
-      COALESCE(NEW.raw_user_meta_data->>'license_number', ''),
       COALESCE((NEW.raw_user_meta_data->>'years_experience')::INTEGER, 0),
       NEW.raw_user_meta_data->>'bio',
       'pending'
@@ -110,7 +106,7 @@ CREATE TRIGGER on_auth_doctor_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_doctor();
 
--- Create a function for manual doctor creation that bypasses RLS
+-- Create a function for manual doctor creation that bypasses RLS and waits for user creation
 CREATE OR REPLACE FUNCTION public.create_doctor_profile(
   user_id UUID,
   user_email TEXT,
@@ -118,7 +114,6 @@ CREATE OR REPLACE FUNCTION public.create_doctor_profile(
   last_name TEXT,
   phone TEXT DEFAULT NULL,
   specialty TEXT DEFAULT '',
-  license_number TEXT DEFAULT '',
   years_experience INTEGER DEFAULT 0,
   bio TEXT DEFAULT NULL
 )
@@ -128,7 +123,23 @@ SECURITY DEFINER
 AS $$
 DECLARE
   result JSONB;
+  user_exists BOOLEAN := FALSE;
+  retry_count INTEGER := 0;
 BEGIN
+  -- Wait for the user to exist in auth.users (up to 10 seconds)
+  WHILE NOT user_exists AND retry_count < 20 LOOP
+    SELECT EXISTS(SELECT 1 FROM auth.users WHERE id = user_id) INTO user_exists;
+    
+    IF NOT user_exists THEN
+      PERFORM pg_sleep(0.5); -- Wait 500ms
+      retry_count := retry_count + 1;
+    END IF;
+  END LOOP;
+  
+  IF NOT user_exists THEN
+    RAISE EXCEPTION 'User not found in auth.users after waiting';
+  END IF;
+
   -- Insert the doctor record
   INSERT INTO public.doctors (
     id,
@@ -137,7 +148,6 @@ BEGIN
     last_name,
     phone,
     specialty,
-    license_number,
     years_experience,
     bio,
     status
@@ -149,7 +159,6 @@ BEGIN
     last_name,
     phone,
     specialty,
-    license_number,
     years_experience,
     bio,
     'pending'
