@@ -1,8 +1,7 @@
 import { createClient } from "@supabase/supabase-js"
 
-const supabaseUrl = "https://sjrkguyqndbuuivuuqnf.supabase.co"
-const supabaseAnonKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNqcmtndXlxbmRidXVpdnV1cW5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQwNTMyOTIsImV4cCI6MjA2OTYyOTI5Mn0.7r_gxIGcrxvVBlK1XpGP8F-Knhauy150Oub8wWQQALI"
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -40,6 +39,62 @@ export interface Doctor {
   status: "pending" | "approved" | "rejected" | "suspended"
   created_at: string
   updated_at: string
+}
+
+export interface DoctorLocation {
+  id: string
+  doctor_id: string
+  name: string
+  address: string
+  city: string
+  state: string
+  postal_code?: string
+  country: string
+  phone?: string
+  email?: string
+  website?: string
+  is_primary: boolean
+  latitude?: number
+  longitude?: number
+  created_at: string
+  updated_at: string
+}
+
+export interface DoctorArticle {
+  id: string
+  doctor_id: string
+  title: string
+  slug: string
+  content: string
+  excerpt?: string
+  featured_image?: string
+  status: "draft" | "published" | "archived"
+  tags?: string[]
+  read_time?: number
+  published_at?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Admin {
+  id: string
+  email: string
+  first_name: string
+  last_name: string
+  role: "admin" | "super_admin"
+  permissions: Record<string, boolean>
+  created_at: string
+  updated_at: string
+}
+
+export interface AdminStats {
+  total_doctors: number
+  pending_doctors: number
+  approved_doctors: number
+  rejected_doctors: number
+  suspended_doctors: number
+  specialties: Record<string, number>
+  recent_registrations: number
 }
 
 // Auth helper functions for patients
@@ -414,6 +469,56 @@ export const doctorSignUp = async (
   }
 }
 
+// Admin signup function
+export const adminSignUp = async (
+  email: string,
+  password: string,
+  adminData: {
+    firstName: string
+    lastName: string
+    role?: "admin" | "super_admin"
+  },
+) => {
+  try {
+    console.log("=== ADMIN SIGNUP ATTEMPT ===")
+    console.log("Email:", email)
+    console.log("Admin data:", adminData)
+
+    const signupData = {
+      email,
+      password,
+      options: {
+        data: {
+          user_type: "admin",
+          first_name: adminData.firstName.trim(),
+          last_name: adminData.lastName.trim(),
+          role: adminData.role || "admin",
+        },
+      },
+    }
+
+    const { data, error } = await supabase.auth.signUp(signupData)
+
+    if (error) {
+      console.error("Admin signup error:", error)
+      return { data: null, error }
+    }
+
+    console.log("=== ADMIN SIGNUP COMPLETE ===")
+    return { data, error: null }
+  } catch (err) {
+    console.error("=== ADMIN SIGNUP EXCEPTION ===")
+    console.error("Error:", err)
+
+    return {
+      data: null,
+      error: {
+        message: `Admin registration failed: ${err instanceof Error ? err.message : "Unknown error"}. Please try again.`,
+      },
+    }
+  }
+}
+
 export const signIn = async (email: string, password: string) => {
   try {
     console.log("Attempting to sign in user:", email)
@@ -573,5 +678,306 @@ export const getCurrentDoctor = async () => {
   } catch (err) {
     console.error("Unexpected error getting doctor:", err)
     return { doctor: null, error: { message: "Failed to get doctor profile" } }
+  }
+}
+
+// Helper function to get current admin profile
+export const getCurrentAdmin = async () => {
+  try {
+    const { user } = await getCurrentUser()
+
+    if (!user) {
+      return { admin: null, error: null }
+    }
+
+    const { data: admin, error } = await supabase.from("admins").select("*").eq("id", user.id).single()
+
+    if (error && error.code !== "PGRST116") {
+      console.error("Error fetching admin profile:", error)
+      return { admin: null, error }
+    }
+
+    return { admin, error: null }
+  } catch (err) {
+    console.error("Unexpected error getting admin:", err)
+    return { admin: null, error: { message: "Failed to get admin profile" } }
+  }
+}
+
+// Admin functions
+export const getAdminStats = async (): Promise<{ stats: AdminStats | null; error: any }> => {
+  try {
+    const { data: stats, error } = await supabase.rpc("get_admin_stats")
+
+    if (error) {
+      console.error("Error fetching admin stats:", error)
+      return { stats: null, error }
+    }
+
+    return { stats, error: null }
+  } catch (err) {
+    console.error("Unexpected error getting admin stats:", err)
+    return { stats: null, error: { message: "Failed to get admin stats" } }
+  }
+}
+
+export const getAllDoctors = async () => {
+  try {
+    const { data: doctors, error } = await supabase
+      .from("doctors")
+      .select("*")
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      console.error("Error fetching doctors:", error)
+      return { doctors: null, error }
+    }
+
+    return { doctors, error: null }
+  } catch (err) {
+    console.error("Unexpected error getting doctors:", err)
+    return { doctors: null, error: { message: "Failed to get doctors" } }
+  }
+}
+
+export const updateDoctorStatus = async (doctorId: string, status: Doctor["status"]) => {
+  try {
+    const { data, error } = await supabase
+      .from("doctors")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", doctorId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error updating doctor status:", error)
+      return { data: null, error }
+    }
+
+    return { data, error: null }
+  } catch (err) {
+    console.error("Unexpected error updating doctor status:", err)
+    return { data: null, error: { message: "Failed to update doctor status" } }
+  }
+}
+
+export const updateDoctorProfile = async (doctorId: string, updates: Partial<Doctor>) => {
+  try {
+    const { data, error } = await supabase
+      .from("doctors")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", doctorId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error updating doctor profile:", error)
+      return { data: null, error }
+    }
+
+    return { data, error: null }
+  } catch (err) {
+    console.error("Unexpected error updating doctor profile:", err)
+    return { data: null, error: { message: "Failed to update doctor profile" } }
+  }
+}
+
+// Doctor location functions
+export const getDoctorLocations = async (doctorId: string) => {
+  try {
+    const { data: locations, error } = await supabase
+      .from("doctor_locations")
+      .select("*")
+      .eq("doctor_id", doctorId)
+      .order("is_primary", { ascending: false })
+
+    if (error) {
+      console.error("Error fetching doctor locations:", error)
+      return { locations: null, error }
+    }
+
+    return { locations, error: null }
+  } catch (err) {
+    console.error("Unexpected error getting doctor locations:", err)
+    return { locations: null, error: { message: "Failed to get doctor locations" } }
+  }
+}
+
+export const createDoctorLocation = async (location: Omit<DoctorLocation, "id" | "created_at" | "updated_at">) => {
+  try {
+    const { data, error } = await supabase.from("doctor_locations").insert(location).select().single()
+
+    if (error) {
+      console.error("Error creating doctor location:", error)
+      return { data: null, error }
+    }
+
+    return { data, error: null }
+  } catch (err) {
+    console.error("Unexpected error creating doctor location:", err)
+    return { data: null, error: { message: "Failed to create doctor location" } }
+  }
+}
+
+export const updateDoctorLocation = async (locationId: string, updates: Partial<DoctorLocation>) => {
+  try {
+    const { data, error } = await supabase
+      .from("doctor_locations")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", locationId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error updating doctor location:", error)
+      return { data: null, error }
+    }
+
+    return { data, error: null }
+  } catch (err) {
+    console.error("Unexpected error updating doctor location:", err)
+    return { data: null, error: { message: "Failed to update doctor location" } }
+  }
+}
+
+export const deleteDoctorLocation = async (locationId: string) => {
+  try {
+    const { error } = await supabase.from("doctor_locations").delete().eq("id", locationId)
+
+    if (error) {
+      console.error("Error deleting doctor location:", error)
+      return { error }
+    }
+
+    return { error: null }
+  } catch (err) {
+    console.error("Unexpected error deleting doctor location:", err)
+    return { error: { message: "Failed to delete doctor location" } }
+  }
+}
+
+// Doctor article functions
+export const getDoctorArticles = async (doctorId: string) => {
+  try {
+    const { data: articles, error } = await supabase
+      .from("doctor_articles")
+      .select("*")
+      .eq("doctor_id", doctorId)
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      console.error("Error fetching doctor articles:", error)
+      return { articles: null, error }
+    }
+
+    return { articles, error: null }
+  } catch (err) {
+    console.error("Unexpected error getting doctor articles:", err)
+    return { articles: null, error: { message: "Failed to get doctor articles" } }
+  }
+}
+
+export const createDoctorArticle = async (article: Omit<DoctorArticle, "id" | "created_at" | "updated_at">) => {
+  try {
+    const { data, error } = await supabase.from("doctor_articles").insert(article).select().single()
+
+    if (error) {
+      console.error("Error creating doctor article:", error)
+      return { data: null, error }
+    }
+
+    return { data, error: null }
+  } catch (err) {
+    console.error("Unexpected error creating doctor article:", err)
+    return { data: null, error: { message: "Failed to create doctor article" } }
+  }
+}
+
+export const updateDoctorArticle = async (articleId: string, updates: Partial<DoctorArticle>) => {
+  try {
+    const { data, error } = await supabase
+      .from("doctor_articles")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", articleId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error updating doctor article:", error)
+      return { data: null, error }
+    }
+
+    return { data, error: null }
+  } catch (err) {
+    console.error("Unexpected error updating doctor article:", err)
+    return { data: null, error: { message: "Failed to update doctor article" } }
+  }
+}
+
+export const deleteDoctorArticle = async (articleId: string) => {
+  try {
+    const { error } = await supabase.from("doctor_articles").delete().eq("id", articleId)
+
+    if (error) {
+      console.error("Error deleting doctor article:", error)
+      return { error }
+    }
+
+    return { error: null }
+  } catch (err) {
+    console.error("Unexpected error deleting doctor article:", err)
+    return { error: { message: "Failed to delete doctor article" } }
+  }
+}
+
+// File upload function
+export const uploadFile = async (file: File, bucket: string, path: string) => {
+  try {
+    const { data, error } = await supabase.storage.from(bucket).upload(path, file, {
+      cacheControl: "3600",
+      upsert: true,
+    })
+
+    if (error) {
+      console.error("Error uploading file:", error)
+      return { data: null, error }
+    }
+
+    // Get public URL
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from(bucket).getPublicUrl(path)
+
+    return { data: { ...data, publicUrl }, error: null }
+  } catch (err) {
+    console.error("Unexpected error uploading file:", err)
+    return { data: null, error: { message: "Failed to upload file" } }
+  }
+}
+
+// Get public doctors (approved only)
+export const getPublicDoctors = async () => {
+  try {
+    const { data: doctors, error } = await supabase
+      .from("doctors")
+      .select(
+        `
+        *,
+        doctor_locations(*),
+        doctor_articles!inner(*)
+      `,
+      )
+      .eq("status", "approved")
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      console.error("Error fetching public doctors:", error)
+      return { doctors: null, error }
+    }
+
+    return { doctors, error: null }
+  } catch (err) {
+    console.error("Unexpected error getting public doctors:", err)
+    return { doctors: null, error: { message: "Failed to get public doctors" } }
   }
 }
