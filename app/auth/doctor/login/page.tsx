@@ -8,10 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ArrowLeft, Mail, Lock, Chrome, AlertCircle, Loader2, Stethoscope } from "lucide-react"
-import { signIn, getCurrentDoctor } from "@/lib/supabase"
+import { ArrowLeft, Mail, Lock, Stethoscope, AlertCircle, Loader2 } from "lucide-react"
+import { signIn } from "@/lib/supabase"
 
 export default function DoctorLoginPage() {
   const router = useRouter()
@@ -44,19 +43,8 @@ export default function DoctorLoginPage() {
       if (error) {
         setSubmitError(error.message)
       } else if (data?.user) {
-        // Check if this user is a doctor
-        const { doctor, error: doctorError } = await getCurrentDoctor()
-
-        if (doctorError) {
-          setSubmitError("Error verifying doctor account. Please try again.")
-        } else if (!doctor) {
-          setSubmitError(
-            "This account is not registered as a doctor. Please use the patient login or register as a doctor.",
-          )
-        } else {
-          // Successful doctor login
-          router.push("/doctor/dashboard")
-        }
+        // Redirect to doctor dashboard
+        router.push("/doctor/dashboard")
       }
     } catch (err) {
       console.error("Login error:", err)
@@ -64,10 +52,6 @@ export default function DoctorLoginPage() {
     } finally {
       setIsSubmitting(false)
     }
-  }
-
-  const handleGoogleLogin = () => {
-    setSubmitError("Google login for doctors is coming soon! Please use email/password for now.")
   }
 
   return (
@@ -86,8 +70,8 @@ export default function DoctorLoginPage() {
             <div className="mx-auto mb-4 w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
               <Stethoscope className="h-8 w-8 text-green-600" />
             </div>
-            <CardTitle className="text-2xl flex items-center justify-center gap-2">Doctor Portal</CardTitle>
-            <p className="text-gray-600">Secure access for healthcare professionals</p>
+            <CardTitle className="text-2xl">Doctor Portal</CardTitle>
+            <p className="text-gray-600">Sign in to your professional account</p>
           </CardHeader>
 
           <CardContent className="space-y-6">
@@ -98,30 +82,11 @@ export default function DoctorLoginPage() {
               </Alert>
             )}
 
-            <Button
-              onClick={handleGoogleLogin}
-              variant="outline"
-              className="w-full flex items-center gap-2 bg-transparent"
-              size="lg"
-            >
-              <Chrome className="h-5 w-5" />
-              Continue with Google
-            </Button>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <Separator />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-gray-500">Or continue with email</span>
-              </div>
-            </div>
-
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="flex items-center gap-2">
                   <Mail className="h-4 w-4" />
-                  Professional Email
+                  Email
                 </Label>
                 <Input
                   id="email"
@@ -148,12 +113,6 @@ export default function DoctorLoginPage() {
                 />
               </div>
 
-              <div className="flex items-center justify-between">
-                <Link href="/auth/forgot-password" className="text-sm text-green-600 hover:text-green-800">
-                  Forgot password?
-                </Link>
-              </div>
-
               <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
@@ -167,21 +126,25 @@ export default function DoctorLoginPage() {
             </form>
 
             <div className="text-center space-y-4">
+              <Link href="/auth/forgot-password" className="text-sm text-green-600 hover:text-green-800">
+                Forgot your password?
+              </Link>
+
               <div className="text-sm">
-                <span className="text-gray-600">Don't have a doctor account? </span>
+                <span className="text-gray-600">Don't have an account? </span>
                 <Link href="/auth/doctor/register" className="text-green-600 hover:text-green-800 font-medium">
                   Register here
                 </Link>
               </div>
 
-              <div className="bg-green-50 p-4 rounded-lg">
-                <h3 className="font-medium text-green-900 mb-2">For Healthcare Professionals</h3>
-                <ul className="text-sm text-green-700 space-y-1">
-                  <li>• Secure patient management</li>
-                  <li>• Online appointment booking</li>
-                  <li>• Professional profile showcase</li>
-                  <li>• Revenue tracking & analytics</li>
-                </ul>
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="font-medium text-blue-900 mb-2">For Patients</h3>
+                <p className="text-sm text-blue-700 mb-2">
+                  Looking for patient services? Patient portal is coming soon.
+                </p>
+                <Link href="/contact" className="text-sm text-blue-600 hover:text-blue-800 underline">
+                  Contact us for assistance
+                </Link>
               </div>
             </div>
           </CardContent>

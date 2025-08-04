@@ -303,25 +303,36 @@ export const doctorSignUp = async (
           await new Promise((resolve) => setTimeout(resolve, 1000))
 
           try {
-            const { error: insertError } = await supabase.from("doctors").upsert(
-              {
-                id: data.user.id,
-                email: data.user.email!,
-                first_name: doctorData.firstName.trim(),
-                last_name: doctorData.lastName.trim(),
-                phone: cleanPhone || null,
-                specialty: doctorData.specialty.trim(),
-                license_number: doctorData.licenseNumber.trim(),
-                years_experience: doctorData.yearsExperience,
-                bio: doctorData.bio?.trim() || null,
-                status: "pending",
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              },
-              {
-                onConflict: "id",
-              },
-            )
+            // First, sign in the user so they have proper auth context
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+              email,
+              password,
+            })
+
+            if (signInError) {
+              console.error("Failed to sign in for manual insert:", signInError)
+              return {
+                data: null,
+                error: {
+                  message: "Account created but profile setup failed. Please try signing in manually.",
+                },
+              }
+            }
+
+            console.log("Signed in successfully, attempting manual doctor insert...")
+
+            const { error: insertError } = await supabase.from("doctors").insert({
+              id: data.user.id,
+              email: data.user.email!,
+              first_name: doctorData.firstName.trim(),
+              last_name: doctorData.lastName.trim(),
+              phone: cleanPhone || null,
+              specialty: doctorData.specialty.trim(),
+              license_number: doctorData.licenseNumber.trim(),
+              years_experience: doctorData.yearsExperience,
+              bio: doctorData.bio?.trim() || null,
+              status: "pending",
+            })
 
             if (insertError) {
               console.error("Manual doctor insert failed:", insertError)
@@ -381,6 +392,9 @@ export const doctorSignUp = async (
     if (data.user) {
       console.log("Doctor registration successful!")
 
+      // Wait a moment for the trigger to complete
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
       // Verify doctor record was created
       console.log("Verifying doctor record...")
       const { data: doctorRecord, error: doctorError } = await supabase
@@ -393,24 +407,41 @@ export const doctorSignUp = async (
         console.log("Doctor record verification failed:", doctorError)
         console.log("Attempting to create doctor record manually...")
 
-        const { error: insertError } = await supabase.from("doctors").insert({
-          id: data.user.id,
-          email: data.user.email!,
-          first_name: doctorData.firstName.trim(),
-          last_name: doctorData.lastName.trim(),
-          phone: cleanPhone || null,
-          specialty: doctorData.specialty.trim(),
-          license_number: doctorData.licenseNumber.trim(),
-          years_experience: doctorData.yearsExperience,
-          bio: doctorData.bio?.trim() || null,
-          status: "pending",
-        })
+        try {
+          // Sign in the user first to establish proper auth context
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          })
 
-        if (insertError) {
-          console.error("Manual doctor creation failed:", insertError)
-          // Don't fail the registration, user can complete profile later
-        } else {
-          console.log("Manual doctor creation successful!")
+          if (signInError) {
+            console.error("Failed to sign in for verification:", signInError)
+            // Don't fail the registration, user can complete profile later
+            return { data, error: null }
+          }
+
+          const { error: insertError } = await supabase.from("doctors").insert({
+            id: data.user.id,
+            email: data.user.email!,
+            first_name: doctorData.firstName.trim(),
+            last_name: doctorData.lastName.trim(),
+            phone: cleanPhone || null,
+            specialty: doctorData.specialty.trim(),
+            license_number: doctorData.licenseNumber.trim(),
+            years_experience: doctorData.yearsExperience,
+            bio: doctorData.bio?.trim() || null,
+            status: "pending",
+          })
+
+          if (insertError) {
+            console.error("Manual doctor creation failed:", insertError)
+            // Don't fail the registration, user can complete profile later
+          } else {
+            console.log("Manual doctor creation successful!")
+          }
+        } catch (manualErr) {
+          console.error("Manual creation exception:", manualErr)
+          // Don't fail the registration
         }
       } else {
         console.log("Doctor record verified:", doctorRecord.id)

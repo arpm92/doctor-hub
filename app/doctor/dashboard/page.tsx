@@ -1,12 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import type React from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   User,
   Mail,
@@ -17,15 +17,15 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  XCircle,
+  Loader2,
   LogOut,
 } from "lucide-react"
-import { getCurrentDoctor, getCurrentUser, signOut, type Doctor } from "@/lib/supabase"
+import { getCurrentUser, getCurrentDoctor, signOut, type Doctor } from "@/lib/supabase"
 
 export default function DoctorDashboard() {
   const router = useRouter()
   const [doctor, setDoctor] = useState<Doctor | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -51,7 +51,7 @@ export default function DoctorDashboard() {
         console.error("Error loading doctor profile:", err)
         setError("An unexpected error occurred")
       } finally {
-        setLoading(false)
+        setIsLoading(false)
       }
     }
 
@@ -67,50 +67,41 @@ export default function DoctorDashboard() {
     }
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case "approved":
-        return (
-          <Badge className="bg-green-100 text-green-800">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            Approved
-          </Badge>
-        )
+        return "bg-green-100 text-green-800"
       case "pending":
-        return (
-          <Badge variant="secondary">
-            <Clock className="w-3 h-3 mr-1" />
-            Pending Review
-          </Badge>
-        )
+        return "bg-yellow-100 text-yellow-800"
       case "rejected":
-        return (
-          <Badge variant="destructive">
-            <XCircle className="w-3 h-3 mr-1" />
-            Rejected
-          </Badge>
-        )
+        return "bg-red-100 text-red-800"
       case "suspended":
-        return (
-          <Badge variant="destructive">
-            <AlertCircle className="w-3 h-3 mr-1" />
-            Suspended
-          </Badge>
-        )
+        return "bg-gray-100 text-gray-800"
       default:
-        return <Badge variant="secondary">Unknown</Badge>
+        return "bg-gray-100 text-gray-800"
     }
   }
 
-  if (loading) {
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "approved":
+        return <CheckCircle className="h-4 w-4" />
+      case "pending":
+        return <Clock className="h-4 w-4" />
+      case "rejected":
+      case "suspended":
+        return <AlertCircle className="h-4 w-4" />
+      default:
+        return <AlertCircle className="h-4 w-4" />
+    }
+  }
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <Skeleton className="h-8 w-64" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Skeleton className="h-64" />
-            <Skeleton className="h-64" />
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading your dashboard...</p>
         </div>
       </div>
     )
@@ -120,12 +111,11 @@ export default function DoctorDashboard() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
-          <CardContent className="p-6">
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-            <div className="mt-4 space-y-2">
+          <CardContent className="p-6 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Error Loading Dashboard</h2>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <div className="space-y-2">
               <Button onClick={() => window.location.reload()} className="w-full">
                 Try Again
               </Button>
@@ -144,8 +134,8 @@ export default function DoctorDashboard() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
-            <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">No Doctor Profile Found</h2>
+            <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Profile Not Found</h2>
             <p className="text-gray-600 mb-4">
               We couldn't find your doctor profile. Please contact support for assistance.
             </p>
@@ -161,20 +151,15 @@ export default function DoctorDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <Stethoscope className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Doctor Dashboard</h1>
-                <p className="text-gray-600">Welcome back, Dr. {doctor.last_name}</p>
-              </div>
+          <div className="flex justify-between items-center py-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Doctor Dashboard</h1>
+              <p className="text-gray-600">Welcome back, Dr. {doctor.last_name}</p>
             </div>
-            <Button variant="outline" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4 mr-2" />
+            <Button variant="outline" onClick={handleSignOut} className="flex items-center gap-2 bg-transparent">
+              <LogOut className="h-4 w-4" />
               Sign Out
             </Button>
           </div>
@@ -183,159 +168,156 @@ export default function DoctorDashboard() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Status Alert */}
-        {doctor.status === "pending" && (
+        {/* Account Status Alert */}
+        {doctor.status !== "approved" && (
           <Alert className="mb-6">
-            <Clock className="h-4 w-4" />
+            <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Your account is currently under review. You'll receive an email notification once it's approved. This
-              typically takes 1-2 business days.
+              {doctor.status === "pending" && (
+                <>
+                  Your account is pending approval. Our team is reviewing your credentials and will notify you once
+                  approved.
+                </>
+              )}
+              {doctor.status === "rejected" && (
+                <>Your account application was not approved. Please contact support for more information.</>
+              )}
+              {doctor.status === "suspended" && (
+                <>Your account has been suspended. Please contact support for assistance.</>
+              )}
             </AlertDescription>
           </Alert>
         )}
 
-        {doctor.status === "rejected" && (
-          <Alert variant="destructive" className="mb-6">
-            <XCircle className="h-4 w-4" />
-            <AlertDescription>
-              Your account application was not approved. Please contact support for more information.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Profile Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="flex items-center gap-2">
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5" />
                   Profile Information
-                </span>
-                {getStatusBadge(doctor.status)}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-500">First Name</label>
-                  <p className="text-gray-900">{doctor.first_name}</p>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Full Name</Label>
+                    <p className="text-lg font-medium">
+                      Dr. {doctor.first_name} {doctor.last_name}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Account Status</Label>
+                    <Badge className={`${getStatusColor(doctor.status)} flex items-center gap-1 w-fit mt-1`}>
+                      {getStatusIcon(doctor.status)}
+                      {doctor.status.charAt(0).toUpperCase() + doctor.status.slice(1)}
+                    </Badge>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Last Name</label>
-                  <p className="text-gray-900">{doctor.last_name}</p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                      <Mail className="h-4 w-4" />
+                      Email
+                    </Label>
+                    <p className="text-gray-900">{doctor.email}</p>
+                  </div>
+                  {doctor.phone && (
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                        <Phone className="h-4 w-4" />
+                        Phone
+                      </Label>
+                      <p className="text-gray-900">{doctor.phone}</p>
+                    </div>
+                  )}
                 </div>
-              </div>
 
-              <div>
-                <label className="text-sm font-medium text-gray-500 flex items-center gap-1">
-                  <Mail className="h-4 w-4" />
-                  Email
-                </label>
-                <p className="text-gray-900">{doctor.email}</p>
-              </div>
-
-              {doctor.phone && (
-                <div>
-                  <label className="text-sm font-medium text-gray-500 flex items-center gap-1">
-                    <Phone className="h-4 w-4" />
-                    Phone
-                  </label>
-                  <p className="text-gray-900">{doctor.phone}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                      <Stethoscope className="h-4 w-4" />
+                      Specialty
+                    </Label>
+                    <p className="text-gray-900">{doctor.specialty}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                      <GraduationCap className="h-4 w-4" />
+                      Years of Experience
+                    </Label>
+                    <p className="text-gray-900">{doctor.years_experience} years</p>
+                  </div>
                 </div>
-              )}
 
-              <div>
-                <label className="text-sm font-medium text-gray-500 flex items-center gap-1">
-                  <Stethoscope className="h-4 w-4" />
-                  Specialty
-                </label>
-                <p className="text-gray-900">{doctor.specialty}</p>
-              </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                    <FileText className="h-4 w-4" />
+                    License Number
+                  </Label>
+                  <p className="text-gray-900 font-mono">{doctor.license_number}</p>
+                </div>
 
-              <div>
-                <label className="text-sm font-medium text-gray-500 flex items-center gap-1">
-                  <FileText className="h-4 w-4" />
-                  License Number
-                </label>
-                <p className="text-gray-900">{doctor.license_number}</p>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-500 flex items-center gap-1">
-                  <GraduationCap className="h-4 w-4" />
-                  Years of Experience
-                </label>
-                <p className="text-gray-900">{doctor.years_experience} years</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Professional Bio */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Professional Bio
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {doctor.bio ? (
-                <p className="text-gray-700 leading-relaxed">{doctor.bio}</p>
-              ) : (
-                <p className="text-gray-500 italic">No bio provided</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Account Status */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5" />
-                Account Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Status</span>
-                {getStatusBadge(doctor.status)}
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Member Since</span>
-                <span className="text-gray-900">{new Date(doctor.created_at).toLocaleDateString()}</span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Last Updated</span>
-                <span className="text-gray-900">{new Date(doctor.updated_at).toLocaleDateString()}</span>
-              </div>
-            </CardContent>
-          </Card>
+                {doctor.bio && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Professional Bio</Label>
+                    <p className="text-gray-900 mt-1">{doctor.bio}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button className="w-full" disabled={doctor.status !== "approved"}>
-                View My Public Profile
-              </Button>
-              <Button variant="outline" className="w-full bg-transparent" disabled={doctor.status !== "approved"}>
-                Manage Appointments
-              </Button>
-              <Button variant="outline" className="w-full bg-transparent">
-                Edit Profile
-              </Button>
-              <Button variant="outline" className="w-full bg-transparent">
-                Contact Support
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button className="w-full" disabled={doctor.status !== "approved"}>
+                  View Appointments
+                </Button>
+                <Button variant="outline" className="w-full bg-transparent" disabled={doctor.status !== "approved"}>
+                  Manage Schedule
+                </Button>
+                <Button variant="outline" className="w-full bg-transparent">
+                  Update Profile
+                </Button>
+                <Button variant="outline" className="w-full bg-transparent">
+                  Contact Support
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Account Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Member Since:</span>
+                  <span>{new Date(doctor.created_at).toLocaleDateString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Last Updated:</span>
+                  <span>{new Date(doctor.updated_at).toLocaleDateString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Languages:</span>
+                  <span>{doctor.languages?.join(", ") || "English"}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
   )
+}
+
+function Label({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <div className={`block text-sm font-medium ${className}`}>{children}</div>
 }

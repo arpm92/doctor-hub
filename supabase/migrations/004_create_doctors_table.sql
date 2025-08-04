@@ -19,6 +19,14 @@ CREATE TABLE IF NOT EXISTS doctors (
 );
 
 -- Create updated_at trigger for doctors
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
 CREATE TRIGGER update_doctors_updated_at 
   BEFORE UPDATE ON doctors 
   FOR EACH ROW 
@@ -26,6 +34,12 @@ CREATE TRIGGER update_doctors_updated_at
 
 -- Enable Row Level Security
 ALTER TABLE doctors ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Doctors can view their own profile" ON doctors;
+DROP POLICY IF EXISTS "Doctors can update their own profile" ON doctors;
+DROP POLICY IF EXISTS "Doctors can insert their own profile" ON doctors;
+DROP POLICY IF EXISTS "Allow service role to insert doctors" ON doctors;
 
 -- Create policies for doctors
 CREATE POLICY "Doctors can view their own profile" ON doctors
@@ -36,6 +50,10 @@ CREATE POLICY "Doctors can update their own profile" ON doctors
 
 CREATE POLICY "Doctors can insert their own profile" ON doctors
   FOR INSERT WITH CHECK (auth.uid() = id);
+
+-- Allow service role to insert doctors (for manual fallback)
+CREATE POLICY "Allow service role to insert doctors" ON doctors
+  FOR INSERT WITH CHECK (auth.role() = 'service_role');
 
 -- Create function to handle new doctor registration
 CREATE OR REPLACE FUNCTION public.handle_new_doctor()
@@ -74,6 +92,9 @@ EXCEPTION
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Drop existing trigger if it exists
+DROP TRIGGER IF EXISTS on_auth_doctor_created ON auth.users;
 
 -- Create trigger for new doctor registration
 CREATE TRIGGER on_auth_doctor_created
