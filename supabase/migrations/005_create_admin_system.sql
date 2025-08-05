@@ -13,26 +13,26 @@ CREATE TABLE IF NOT EXISTS admins (
 -- Enable RLS for admins
 ALTER TABLE admins ENABLE ROW LEVEL SECURITY;
 
--- Admin policies
-CREATE POLICY "Admins can view all admin records" ON admins
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM admins WHERE id = auth.uid()
-    )
-  );
+-- Drop old recursive policies if they exist
+DROP POLICY IF EXISTS "Admins can view all admin records" ON public.admins;
+DROP POLICY IF EXISTS "Super admins can manage admins" ON public.admins;
 
-CREATE POLICY "Super admins can manage admins" ON admins
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM admins WHERE id = auth.uid() AND role = 'super_admin'
-    )
-  );
+-- Create direct RLS policy for admins to read their own row
+CREATE POLICY "Admins can view own record" 
+  ON public.admins
+  FOR SELECT
+  USING ( id = auth.uid() );
 
--- Create function to handle new admin registration
+-- Create direct RLS policy for super_admins to manage admins
+CREATE POLICY "Super admins can manage admins"
+  ON public.admins
+  FOR ALL
+  USING ( id = auth.uid() AND role = 'super_admin' );
+
+-- Trigger-based admin record creation
 CREATE OR REPLACE FUNCTION public.handle_new_admin()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- Only create admin record if user_metadata indicates this is an admin
   IF NEW.raw_user_meta_data->>'user_type' = 'admin' THEN
     INSERT INTO public.admins (
       id, 
@@ -48,7 +48,6 @@ BEGIN
       COALESCE(NEW.raw_user_meta_data->>'last_name', ''),
       COALESCE(NEW.raw_user_meta_data->>'role', 'admin')
     );
-    
     RAISE LOG 'Successfully created admin record for user %', NEW.id;
   END IF;
   RETURN NEW;
@@ -59,12 +58,12 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Create trigger for new admin registration
+DROP TRIGGER IF EXISTS on_auth_admin_created ON auth.users;
 CREATE TRIGGER on_auth_admin_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_admin();
 
--- Create function to check if user is admin
+-- Helper to check admin status
 CREATE OR REPLACE FUNCTION public.is_admin(user_id UUID DEFAULT auth.uid())
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -74,17 +73,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Update doctors table policies to allow admin access
-CREATE POLICY "Admins can manage all doctors" ON doctors
-  FOR ALL USING (public.is_admin());
+-- Allow admins to manage doctors
+DROP POLICY IF EXISTS "Admins can manage all doctors" ON public.doctors;
+CREATE POLICY "Admins can manage all doctors" 
+  ON public.doctors
+  FOR ALL
+  USING ( public.is_admin() );
 
--- Create admin dashboard stats function
+-- Admin dashboard stats function
 CREATE OR REPLACE FUNCTION public.get_admin_stats()
 RETURNS JSONB AS $$
 DECLARE
   stats JSONB;
 BEGIN
-  -- Only allow admins to access this function
   IF NOT public.is_admin() THEN
     RAISE EXCEPTION 'Access denied. Admin privileges required.';
   END IF;
@@ -98,13 +99,13 @@ BEGIN
     'specialties', (
       SELECT jsonb_object_agg(specialty, count)
       FROM (
-        SELECT specialty, COUNT(*) as count
+        SELECT specialty, COUNT(*) AS count
         FROM doctors
         WHERE status = 'approved'
         GROUP BY specialty
         ORDER BY count DESC
         LIMIT 10
-      ) specialty_counts
+      ) AS specialty_counts
     ),
     'recent_registrations', (
       SELECT COUNT(*)
