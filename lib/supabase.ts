@@ -128,10 +128,15 @@ export const signUp = async (
     const cleanPhone = userData.phone?.trim() || undefined
 
     console.log("Attempting user signup with cleaned data...")
+
+    // Get the current origin for redirect URL
+    const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000"
+
     const signupData = {
       email,
       password,
       options: {
+        emailRedirectTo: `${origin}/auth/callback`,
         data: {
           user_type: "patient",
           first_name: userData.firstName.trim(),
@@ -312,10 +317,15 @@ export const doctorSignUp = async (
     const cleanPhone = doctorData.phone?.trim() || undefined
 
     console.log("Attempting doctor signup with cleaned data...")
+
+    // Get the current origin for redirect URL
+    const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000"
+
     const signupData = {
       email,
       password,
       options: {
+        emailRedirectTo: `${origin}/auth/callback`,
         data: {
           user_type: "doctor",
           first_name: doctorData.firstName.trim(),
@@ -488,10 +498,14 @@ export const adminSignUp = async (
     console.log("Email:", email)
     console.log("Admin data:", adminData)
 
+    // Get the current origin for redirect URL
+    const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000"
+
     const signupData = {
       email,
       password,
       options: {
+        emailRedirectTo: `${origin}/auth/callback`,
         data: {
           user_type: "admin",
           first_name: adminData.firstName.trim(),
