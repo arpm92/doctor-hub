@@ -9,7 +9,21 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Users, Search, Eye, CheckCircle, XCircle, Clock, Pause, Star, Crown, Shield, AlertCircle } from "lucide-react"
+import {
+  Users,
+  Search,
+  Eye,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Pause,
+  Star,
+  Crown,
+  Shield,
+  AlertCircle,
+  Database,
+  ExternalLink,
+} from "lucide-react"
 import { getAllDoctors, updateDoctorStatus, updateDoctorProfile, getCurrentUser, getCurrentAdmin } from "@/lib/supabase"
 import type { Doctor } from "@/lib/supabase"
 
@@ -24,6 +38,7 @@ export default function AdminDoctorsPage() {
   const [specialtyFilter, setSpecialtyFilter] = useState<string>("all")
   const [isUpdating, setIsUpdating] = useState(false)
   const [updateMessage, setUpdateMessage] = useState<string | null>(null)
+  const [tierFeatureAvailable, setTierFeatureAvailable] = useState(true)
 
   useEffect(() => {
     checkAdminAccess()
@@ -102,8 +117,9 @@ export default function AdminDoctorsPage() {
       const { data, error } = await updateDoctorProfile(doctorId, { tier: newTier })
 
       if (error) {
-        // If tier column doesn't exist, show a helpful message
-        if (error.message.includes("tier")) {
+        // Check if it's a tier column missing error
+        if (error.code === "TIER_COLUMN_MISSING" || error.message.includes("tier")) {
+          setTierFeatureAvailable(false)
           setUpdateMessage("Tier feature is not yet available. Please run the database migration first.")
         } else {
           throw new Error(error.message)
@@ -128,7 +144,7 @@ export default function AdminDoctorsPage() {
     // Generate slug if not available
     const slug =
       doctor.slug || `${doctor.first_name.toLowerCase()}-${doctor.last_name.toLowerCase()}-${doctor.id.slice(0, 8)}`
-    router.push(`/doctors/${slug}`)
+    window.open(`/doctors/${slug}`, "_blank")
   }
 
   const filteredDoctors = doctors.filter((doctor) => {
@@ -229,13 +245,41 @@ export default function AdminDoctorsPage() {
           </div>
         </div>
 
+        {/* Tier Feature Warning */}
+        {!tierFeatureAvailable && (
+          <Alert className="border-yellow-200 bg-yellow-50">
+            <Database className="h-4 w-4" />
+            <AlertDescription className="text-yellow-800">
+              <div className="flex items-center justify-between">
+                <span>
+                  The tier management feature requires a database migration. Please run the migration to enable tier
+                  functionality.
+                </span>
+                <Button variant="outline" size="sm" onClick={() => setTierFeatureAvailable(true)} className="ml-4">
+                  Dismiss
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Update Message */}
         {updateMessage && (
           <Alert
-            className={updateMessage.includes("Failed") ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"}
+            className={
+              updateMessage.includes("Failed") || updateMessage.includes("not yet available")
+                ? "border-red-200 bg-red-50"
+                : "border-green-200 bg-green-50"
+            }
           >
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription className={updateMessage.includes("Failed") ? "text-red-800" : "text-green-800"}>
+            <AlertDescription
+              className={
+                updateMessage.includes("Failed") || updateMessage.includes("not yet available")
+                  ? "text-red-800"
+                  : "text-green-800"
+              }
+            >
               {updateMessage}
             </AlertDescription>
           </Alert>
@@ -383,7 +427,7 @@ export default function AdminDoctorsPage() {
                       <Select
                         value={doctor.tier || "basic"}
                         onValueChange={(value: Doctor["tier"]) => handleTierUpdate(doctor.id, value)}
-                        disabled={isUpdating}
+                        disabled={isUpdating || !tierFeatureAvailable}
                       >
                         <SelectTrigger className="w-24">
                           <SelectValue />
@@ -405,6 +449,7 @@ export default function AdminDoctorsPage() {
                         className="flex items-center gap-1"
                       >
                         <Eye className="h-4 w-4" />
+                        <ExternalLink className="h-3 w-3" />
                         View
                       </Button>
 

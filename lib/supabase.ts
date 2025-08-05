@@ -771,81 +771,64 @@ export const updateDoctorStatus = async (doctorId: string, status: Doctor["statu
   }
 }
 
+// Updated function to handle tier column gracefully
 export const updateDoctorProfile = async (doctorId: string, updates: Partial<Doctor>) => {
   try {
     console.log("Updating doctor profile:", doctorId, updates)
 
-    // First check if the doctor exists and get current data
-    const { data: currentDoctor, error: fetchError } = await supabase
-      .from("doctors")
-      .select("*")
-      .eq("id", doctorId)
-      .single()
-
-    if (fetchError) {
-      console.error("Error fetching current doctor:", fetchError)
-      return { data: null, error: fetchError }
-    }
-
-    // If updating tier and column doesn't exist, try to add it first
+    // If we're trying to update the tier, handle it separately
     if (updates.tier) {
+      // First, try to check if the tier column exists by doing a simple select
       try {
-        // Try to update with tier
-        const { data, error } = await supabase
+        const { data: testDoctor, error: testError } = await supabase
           .from("doctors")
-          .update({ ...updates, updated_at: new Date().toISOString() })
+          .select("tier")
           .eq("id", doctorId)
-          .select()
+          .limit(1)
           .single()
 
-        if (error) {
-          console.error("Error updating doctor profile with tier:", error)
-
-          // If tier column doesn't exist, update without it for now
-          if (error.message.includes("tier")) {
-            console.log("Tier column not found, updating without tier...")
-            const updatesWithoutTier = { ...updates }
-            delete updatesWithoutTier.tier
-
-            const { data: fallbackData, error: fallbackError } = await supabase
-              .from("doctors")
-              .update({ ...updatesWithoutTier, updated_at: new Date().toISOString() })
-              .eq("id", doctorId)
-              .select()
-              .single()
-
-            if (fallbackError) {
-              return { data: null, error: fallbackError }
-            }
-
-            // Return data with tier from the update request
-            return { data: { ...fallbackData, tier: updates.tier }, error: null }
+        if (testError && testError.message.includes("tier")) {
+          // Tier column doesn't exist, return an informative error
+          return {
+            data: null,
+            error: {
+              message:
+                "The tier feature is not yet available. Please run the database migration to add the tier column.",
+              code: "TIER_COLUMN_MISSING",
+            },
           }
-
-          return { data: null, error }
         }
-
-        return { data, error: null }
-      } catch (updateErr) {
-        console.error("Exception updating doctor profile:", updateErr)
-        return { data: null, error: { message: "Failed to update doctor profile" } }
+      } catch (testErr) {
+        console.log("Could not test tier column, proceeding with update...")
       }
-    } else {
-      // Regular update without tier
-      const { data, error } = await supabase
-        .from("doctors")
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq("id", doctorId)
-        .select()
-        .single()
-
-      if (error) {
-        console.error("Error updating doctor profile:", error)
-        return { data: null, error }
-      }
-
-      return { data, error: null }
     }
+
+    // Proceed with the update
+    const { data, error } = await supabase
+      .from("doctors")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", doctorId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error updating doctor profile:", error)
+
+      // Check if it's a tier column error
+      if (error.message.includes("tier") || error.message.includes("column")) {
+        return {
+          data: null,
+          error: {
+            message: "The tier feature is not yet available. Please run the database migration to add the tier column.",
+            code: "TIER_COLUMN_MISSING",
+          },
+        }
+      }
+
+      return { data: null, error }
+    }
+
+    return { data, error: null }
   } catch (err) {
     console.error("Unexpected error updating doctor profile:", err)
     return { data: null, error: { message: "Failed to update doctor profile" } }
