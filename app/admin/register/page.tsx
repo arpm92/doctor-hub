@@ -53,8 +53,8 @@ export default function AdminRegisterPage() {
 
     try {
       const { data, error } = await adminSignUp(formData.email.trim(), formData.password, {
-        first_name: formData.firstName.trim(),
-        last_name: formData.lastName.trim(),
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
         phone: formData.phone.trim(),
         user_type: "admin",
         role: "super_admin",

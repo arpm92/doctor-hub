@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeft, Mail, Lock, Shield, AlertCircle, Loader2 } from "lucide-react"
-import { signIn, getCurrentAdmin } from "@/lib/supabase"
+import { adminLogin } from "@/lib/supabase"
+
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -31,30 +32,20 @@ export default function AdminLoginPage() {
     e.preventDefault()
     setIsSubmitting(true)
     setSubmitError(null)
-
+  
     if (!formData.email.trim() || !formData.password) {
       setSubmitError("Please enter both email and password")
       setIsSubmitting(false)
       return
     }
-
+  
     try {
-      const { data, error } = await signIn(formData.email.trim(), formData.password)
-
+      const { data, error } = await adminLogin(formData.email.trim(), formData.password)
+  
       if (error) {
         setSubmitError(error.message)
-      } else if (data?.user) {
-        // Check if this user is an admin
-        const { admin, error: adminError } = await getCurrentAdmin()
-
-        if (adminError) {
-          setSubmitError("Error verifying admin account. Please try again.")
-        } else if (!admin) {
-          setSubmitError("Access denied. This account does not have admin privileges.")
-        } else {
-          // Successful admin login
-          router.push("/admin/dashboard")
-        }
+      } else {
+        router.push("/admin/dashboard")
       }
     } catch (err) {
       console.error("Login error:", err)
@@ -63,6 +54,7 @@ export default function AdminLoginPage() {
       setIsSubmitting(false)
     }
   }
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">

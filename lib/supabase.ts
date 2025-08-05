@@ -684,19 +684,19 @@ export const getCurrentDoctor = async () => {
 // Helper function to get current admin profile
 export const getCurrentAdmin = async () => {
   try {
-    const { user } = await getCurrentUser()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) return { admin: null, error: userError }
 
-    if (!user) {
-      return { admin: null, error: null }
-    }
+    const { data: admin, error } = await supabase
+      .from("admins")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle()
 
-    const { data: admin, error } = await supabase.from("admins").select("*").eq("id", user.id).single()
-
-    if (error && error.code !== "PGRST116") {
+    if (error) {
       console.error("Error fetching admin profile:", error)
       return { admin: null, error }
     }
-
     return { admin, error: null }
   } catch (err) {
     console.error("Unexpected error getting admin:", err)
@@ -981,3 +981,37 @@ export const getPublicDoctors = async () => {
     return { doctors: null, error: { message: "Failed to get public doctors" } }
   }
 }
+
+/**
+ * Sign in with email/password, then verify there’s an admins.id = your user.id.
+ * Returns { data: { user, admin }, error }.
+ */
+export const adminLogin = async (email: string, password: string) => {
+  // 1) Sign in
+  const { data: signInData, error: signInError } =
+    await supabase.auth.signInWithPassword({ email, password });
+  console.log("🔐 adminLogin – signInData:", signInData, "signInError:", signInError);
+  if (signInError || !signInData.user) {
+    return { data: null, error: signInError || new Error("Invalid credentials") };
+  }
+
+  // 2) Check the admins table
+  const userId = signInData.user.id;
+  console.log("🔍 adminLogin – looking up admin with id =", userId);
+  const { data: admin, error: adminError } = await supabase
+    .from("admins")
+    .select("*")
+    .eq("id", userId)
+    .maybeSingle();
+  console.log("🏷️ adminLogin – admin row:", admin, "adminError:", adminError);
+
+  if (adminError) {
+    return { data: null, error: new Error("Error verifying admin account") };
+  }
+  if (!admin) {
+    return { data: null, error: new Error("Access denied. Not an admin.") };
+  }
+
+  // 3) Success
+  return { data: { user: signInData.user, admin }, error: null };
+};
