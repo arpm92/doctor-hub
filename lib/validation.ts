@@ -1,3 +1,5 @@
+import * as z from "zod"
+
 export interface ValidationError {
   field: string
   message: string
@@ -127,3 +129,15 @@ export const validateRegistrationForm = (formData: {
     errors,
   }
 }
+
+export const profileFormSchema = z.object({
+  bio: z.string().max(160, {
+    message: "Bio must be less than 160 characters.",
+  }),
+  location: z.string().max(30, {
+    message: "Location must be less than 30 characters.",
+  }),
+  website: z.string().url({
+    message: "Must be a valid URL.",
+  }),
+})

@@ -33,7 +33,14 @@ import {
   XCircle,
   AlertCircle,
 } from "lucide-react"
-import { getCurrentUser, getCurrentAdmin, getAllDoctors, updateDoctorStatus, type Doctor } from "@/lib/supabase"
+import {
+  getCurrentUser,
+  getCurrentAdmin,
+  getAllDoctors,
+  updateDoctorStatus,
+  updateDoctorProfile,
+  type Doctor,
+} from "@/lib/supabase"
 
 export default function AdminDoctorsPage() {
   const router = useRouter()
@@ -124,6 +131,27 @@ export default function AdminDoctorsPage() {
       setSelectedDoctor(null)
     } catch (err) {
       console.error("Error updating status:", err)
+      alert("An unexpected error occurred")
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleTierUpdate = async (doctorId: string, newTier: Doctor["tier"]) => {
+    setIsUpdating(true)
+    try {
+      const { data, error } = await updateDoctorProfile(doctorId, { tier: newTier })
+      if (error) {
+        alert("Failed to update doctor tier: " + error.message)
+        return
+      }
+
+      // Update local state
+      setDoctors((prev) => prev.map((doctor) => (doctor.id === doctorId ? { ...doctor, tier: newTier } : doctor)))
+
+      setSelectedDoctor(null)
+    } catch (err) {
+      console.error("Error updating tier:", err)
       alert("An unexpected error occurred")
     } finally {
       setIsUpdating(false)
@@ -269,6 +297,7 @@ export default function AdminDoctorsPage() {
                     <TableHead>Specialty</TableHead>
                     <TableHead>Experience</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Subscription</TableHead>
                     <TableHead>Registered</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -288,12 +317,29 @@ export default function AdminDoctorsPage() {
                       <TableCell>{doctor.specialty}</TableCell>
                       <TableCell>{doctor.years_experience} years</TableCell>
                       <TableCell>{getStatusBadge(doctor.status)}</TableCell>
+                      <TableCell>
+                        <Select
+                          value={doctor.tier}
+                          onValueChange={(value) => handleTierUpdate(doctor.id, value as Doctor["tier"])}
+                        >
+                          <SelectTrigger className="w-full md:w-32">
+                            <SelectValue placeholder={doctor.tier} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="basic">Basic</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="premium">Premium</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
                       <TableCell>{new Date(doctor.created_at).toLocaleDateString()}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm">
-                            <Eye className="h-3 w-3 mr-1" />
-                            View
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={`/doctors/${doctor.slug}`}>
+                              <Eye className="h-3 w-3 mr-1" />
+                              View
+                            </Link>
                           </Button>
                           <Dialog>
                             <DialogTrigger asChild>

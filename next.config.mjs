@@ -7,6 +7,14 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'utfs.io',
+        port: '',
+        pathname: '/s3/**',
+      },
+    ],
     unoptimized: true,
   },
 }

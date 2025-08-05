@@ -1,29 +1,24 @@
-import type { Doctor } from "./types"
-import doctorsData from "./doctors.json"
-
-export const doctors: Doctor[] = doctorsData
-
-export function getDoctorBySlug(slug: string): Doctor | undefined {
-  return doctors.find((doctor) => doctor.slug === slug)
-}
+import type { Doctor } from "@/lib/types"
+import doctors from "./doctors.json"
 
 export function getAllDoctors(): Doctor[] {
   return doctors
 }
 
-export function getDoctorsBySpecialty(): Record<string, Doctor[]> {
-  return doctors.reduce(
-    (acc, doctor) => {
-      if (!acc[doctor.specialty]) {
-        acc[doctor.specialty] = []
-      }
-      acc[doctor.specialty].push(doctor)
-      return acc
-    },
-    {} as Record<string, Doctor[]>,
-  )
+export function getDoctorBySlug(slug: string): Doctor | undefined {
+  return doctors.find((doctor) => doctor.slug === slug)
 }
 
-export function getAllSpecialties(): string[] {
-  return [...new Set(doctors.map((doctor) => doctor.specialty))]
+export function getDoctorsBySpecialty(): { [key: string]: Doctor[] } {
+  const doctorsBySpecialty: { [key: string]: Doctor[] } = {}
+
+  doctors.forEach((doctor) => {
+    if (doctorsBySpecialty[doctor.specialty]) {
+      doctorsBySpecialty[doctor.specialty].push(doctor)
+    } else {
+      doctorsBySpecialty[doctor.specialty] = [doctor]
+    }
+  })
+
+  return doctorsBySpecialty
 }
