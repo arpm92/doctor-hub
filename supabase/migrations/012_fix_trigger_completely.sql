@@ -2,6 +2,7 @@
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
 DROP FUNCTION IF EXISTS public.create_doctor_profile_manual(UUID, TEXT, TEXT, TEXT, TEXT, TEXT, INTEGER, TEXT) CASCADE;
+DROP FUNCTION IF EXISTS public.create_doctor_profile(UUID, TEXT, TEXT, TEXT, TEXT, TEXT, INTEGER, TEXT) CASCADE;
 
 -- Create a much simpler and more robust function
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -90,6 +91,72 @@ CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+-- Create RLS policies that allow the trigger to work
+-- First, ensure RLS is enabled on all tables
+ALTER TABLE public.patients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.doctors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can view own patient profile" ON public.patients;
+DROP POLICY IF EXISTS "Users can update own patient profile" ON public.patients;
+DROP POLICY IF EXISTS "Allow patient registration" ON public.patients;
+
+DROP POLICY IF EXISTS "Users can view own doctor profile" ON public.doctors;
+DROP POLICY IF EXISTS "Users can update own doctor profile" ON public.doctors;
+DROP POLICY IF EXISTS "Allow doctor registration" ON public.doctors;
+DROP POLICY IF EXISTS "Admins can view all doctors" ON public.doctors;
+DROP POLICY IF EXISTS "Admins can update all doctors" ON public.doctors;
+
+DROP POLICY IF EXISTS "Users can view own admin profile" ON public.admins;
+DROP POLICY IF EXISTS "Allow admin registration" ON public.admins;
+
+-- Create comprehensive RLS policies for patients
+CREATE POLICY "Allow patient registration" ON public.patients
+    FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Users can view own patient profile" ON public.patients
+    FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Users can update own patient profile" ON public.patients
+    FOR UPDATE USING (auth.uid() = id);
+
+-- Create comprehensive RLS policies for doctors
+CREATE POLICY "Allow doctor registration" ON public.doctors
+    FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Users can view own doctor profile" ON public.doctors
+    FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Users can update own doctor profile" ON public.doctors
+    FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "Public can view approved doctors" ON public.doctors
+    FOR SELECT USING (status = 'approved');
+
+CREATE POLICY "Admins can view all doctors" ON public.doctors
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.admins 
+            WHERE admins.id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Admins can update all doctors" ON public.doctors
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM public.admins 
+            WHERE admins.id = auth.uid()
+        )
+    );
+
+-- Create comprehensive RLS policies for admins
+CREATE POLICY "Allow admin registration" ON public.admins
+    FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Users can view own admin profile" ON public.admins
+    FOR SELECT USING (auth.uid() = id);
+
 -- Create a simple RPC function for manual profile creation
 CREATE OR REPLACE FUNCTION public.create_doctor_profile(
     p_user_id UUID,
@@ -137,8 +204,17 @@ BEGIN
         updated_at = NOW();
     
     RETURN TRUE;
+EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'Failed to create doctor profile: %', SQLERRM;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Grant necessary permissions
 GRANT EXECUTE ON FUNCTION public.create_doctor_profile TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.handle_new_user TO anon, authenticated;
+
+-- Ensure the trigger function has the right permissions
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT INSERT ON public.patients TO anon, authenticated;
+GRANT INSERT ON public.doctors TO anon, authenticated;
+GRANT INSERT ON public.admins TO anon, authenticated;

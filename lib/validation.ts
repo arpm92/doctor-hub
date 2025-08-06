@@ -1,55 +1,44 @@
 // Email validation
-export function validateEmail(email: string): boolean {
+export const validateEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   return emailRegex.test(email.trim())
 }
 
-// Password validation - at least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character
-export function validatePassword(password: string): boolean {
+// Password validation - must contain at least 8 characters, uppercase, lowercase, number, and special character
+export const validatePassword = (password: string): boolean => {
   if (password.length < 8) return false
   
   const hasUppercase = /[A-Z]/.test(password)
   const hasLowercase = /[a-z]/.test(password)
   const hasNumber = /\d/.test(password)
-  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>._\-+=\[\]\\\/~`]/.test(password)
+  const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password)
   
   return hasUppercase && hasLowercase && hasNumber && hasSpecialChar
 }
 
-// Name validation - at least 2 characters, only letters, spaces, hyphens, and apostrophes
-export function validateName(name: string): boolean {
+// Name validation - 2-50 characters, letters, spaces, hyphens, apostrophes
+export const validateName = (name: string): boolean => {
   const nameRegex = /^[a-zA-Z\s\-']{2,50}$/
   return nameRegex.test(name.trim())
 }
 
-// Phone validation - required, 10-15 digits
-export function validatePhone(phone: string, required: boolean = false): boolean {
+// Phone validation - accepts various formats, strips non-digits for validation
+export const validatePhone = (phone: string, required: boolean = false): boolean => {
   if (!phone || phone.trim() === '') {
     return !required // If not required, empty is valid
   }
   
-  // Remove all non-digit characters
+  // Remove all non-digit characters for validation
   const digitsOnly = phone.replace(/\D/g, '')
   
-  // Check if it has 10-15 digits
+  // Must have 10-15 digits
   return digitsOnly.length >= 10 && digitsOnly.length <= 15
 }
 
-// Date validation - must be a valid date and not in the future
-export function validateDateOfBirth(dateString: string): boolean {
-  const date = new Date(dateString)
-  const today = new Date()
-  const minDate = new Date(today.getFullYear() - 120, today.getMonth(), today.getDate())
-  
-  return date instanceof Date && 
-         !isNaN(date.getTime()) && 
-         date <= today && 
-         date >= minDate
-}
-
-// Generic required field validation
-export function validateRequired(value: string): boolean {
-  return value.trim().length > 0
+// Date validation
+export const validateDate = (date: string): boolean => {
+  const dateObj = new Date(date)
+  return !isNaN(dateObj.getTime()) && dateObj <= new Date()
 }
 
 // Specialty validation
@@ -78,11 +67,6 @@ export function validateSpecialty(specialty: string): boolean {
   ]
   
   return validSpecialties.includes(specialty)
-}
-
-// Years of experience validation
-export function validateYearsExperience(years: number): boolean {
-  return Number.isInteger(years) && years >= 0 && years <= 60
 }
 
 // Bio validation
