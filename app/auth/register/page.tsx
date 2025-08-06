@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import React, { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,7 +10,25 @@ import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Mail, Lock, Chrome, Phone, Calendar, User, AlertCircle, Heart, Shield } from "lucide-react"
+import {
+  ArrowLeft,
+  Mail,
+  Lock,
+  Chrome,
+  Phone,
+  Calendar,
+  User,
+  AlertCircle,
+  Heart,
+  Shield,
+} from "lucide-react"
+import {
+  validateName,
+  validateEmail,
+  validatePhone,
+  validateDateOfBirth,
+  validatePassword,
+} from "@/lib/validation"
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -34,7 +50,42 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitError("Patient registration is currently under development. Please check back soon!")
+
+    // 1) Collect errors
+    const errors: Record<string, string> = {}
+
+    if (!validateName(formData.firstName, "First name") && formData.firstName.trim().length < 2)
+      errors.firstName = "First name must be 2–50 letters"
+    if (!validateName(formData.lastName, "Last name") && formData.lastName.trim().length < 2)
+      errors.lastName = "Last name must be 2–50 letters"
+    if (validateEmail(formData.email))
+      errors.email = validateEmail(formData.email)!
+    if (validatePhone(formData.phone))
+      errors.phone = validatePhone(formData.phone)!
+    if (validateDateOfBirth(formData.dateOfBirth))
+      errors.dateOfBirth = validateDateOfBirth(formData.dateOfBirth)!
+    if (validatePassword(formData.password))
+      errors.password = validatePassword(formData.password)!
+    if (formData.password !== formData.confirmPassword)
+      errors.confirmPassword = "Passwords do not match"
+    if (!formData.agreeToTerms)
+      errors.agreeToTerms = "You must agree to the terms"
+
+    console.log("Validation errors:", errors)
+
+    // 2) If any, show first and abort
+    if (Object.keys(errors).length > 0) {
+      setSubmitError(Object.values(errors)[0])
+      return
+    }
+
+    // 3) Otherwise, proceed with your signup logic
+    try {
+      // TODO: await supabase.auth.signUp(...) or your RPC
+      console.log("All validations passed – now call signup!")
+    } catch (_err) {
+      setSubmitError("Registration failed — please try again.")
+    }
   }
 
   const handleGoogleSignup = () => {
@@ -115,7 +166,6 @@ export default function RegisterPage() {
                     placeholder="John"
                     value={formData.firstName}
                     onChange={(e) => handleInputChange("firstName", e.target.value)}
-                    disabled
                   />
                 </div>
 
@@ -130,7 +180,6 @@ export default function RegisterPage() {
                     placeholder="Doe"
                     value={formData.lastName}
                     onChange={(e) => handleInputChange("lastName", e.target.value)}
-                    disabled
                   />
                 </div>
               </div>
@@ -146,7 +195,6 @@ export default function RegisterPage() {
                   placeholder="john@example.com"
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
-                  disabled
                 />
               </div>
 
@@ -158,10 +206,9 @@ export default function RegisterPage() {
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="Enter your phone number"
+                  placeholder="+1 (555) 123-4567"
                   value={formData.phone}
                   onChange={(e) => handleInputChange("phone", e.target.value)}
-                  disabled
                 />
               </div>
 
@@ -172,11 +219,10 @@ export default function RegisterPage() {
                 </Label>
                 <Input
                   id="dateOfBirth"
-                  type="text"
-                  placeholder="DD/MM/YYYY"
+                  type="date" // you can use date picker
+                  placeholder="YYYY-MM-DD"
                   value={formData.dateOfBirth}
                   onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
-                  disabled
                 />
               </div>
 
@@ -191,7 +237,6 @@ export default function RegisterPage() {
                   placeholder="Create a strong password"
                   value={formData.password}
                   onChange={(e) => handleInputChange("password", e.target.value)}
-                  disabled
                 />
               </div>
 
@@ -206,7 +251,6 @@ export default function RegisterPage() {
                   placeholder="Confirm your password"
                   value={formData.confirmPassword}
                   onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                  disabled
                 />
               </div>
 
@@ -216,7 +260,6 @@ export default function RegisterPage() {
                     id="terms"
                     checked={formData.agreeToTerms}
                     onCheckedChange={(checked) => handleInputChange("agreeToTerms", checked as boolean)}
-                    disabled
                   />
                   <Label htmlFor="terms" className="text-sm">
                     I agree to the{" "}
@@ -231,8 +274,8 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              <Button type="submit" size="lg" className="w-full" disabled>
-                Create Account (Coming Soon)
+              <Button type="submit" size="lg" className="w-full">
+                Create Account
               </Button>
             </form>
 
