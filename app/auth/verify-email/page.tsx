@@ -1,116 +1,169 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ArrowLeft, Mail, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { Mail, CheckCircle, AlertCircle, RefreshCw } from "lucide-react"
 
 export default function VerifyEmailPage() {
-  const [isResending, setIsResending] = useState(false)
-  const [resendMessage, setResendMessage] = useState<string | null>(null)
-  const [resendError, setResendError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState(false)
+  const [resendSuccess, setResendSuccess] = useState(false)
+  const searchParams = useSearchParams()
+  const email = searchParams.get("email")
 
-  const handleResendEmail = async () => {
-    setIsResending(true)
-    setResendMessage(null)
-    setResendError(null)
+  useEffect(() => {
+    // Check if user is already verified
+    const checkVerification = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (user?.email_confirmed_at) {
+        setSuccess(true)
+      }
+    }
+
+    checkVerification()
+  }, [])
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      setError("No email address provided")
+      return
+    }
+
+    setLoading(true)
+    setError("")
+    setResendSuccess(false)
 
     try {
-      // This would need the user's email - in a real app, you'd store this in state or URL params
       const { error } = await supabase.auth.resend({
         type: "signup",
-        email: "user@example.com", // You'd get this from somewhere
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       })
 
       if (error) {
-        setResendError("Failed to resend verification email. Please try again.")
+        setError(error.message)
       } else {
-        setResendMessage("Verification email sent! Please check your inbox.")
+        setResendSuccess(true)
       }
     } catch (err) {
-      setResendError("An unexpected error occurred. Please try again.")
+      setError("Failed to resend verification email")
+      console.error("Resend verification error:", err)
     } finally {
-      setIsResending(false)
+      setLoading(false)
     }
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <Link
-          href="/auth/register"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Registration
-        </Link>
-
-        <Card>
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 backdrop-blur-sm">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-              <Mail className="h-8 w-8 text-blue-600" />
+            <div className="mx-auto w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+              <CheckCircle className="w-6 h-6 text-emerald-600" />
             </div>
-            <CardTitle className="text-2xl">Check Your Email</CardTitle>
-            <p className="text-gray-600">We've sent a verification link to your email address</p>
+            <CardTitle className="text-2xl text-emerald-900">Email Verified!</CardTitle>
+            <CardDescription className="text-emerald-700">
+              Your email has been successfully verified. You can now access your account.
+            </CardDescription>
           </CardHeader>
-
-          <CardContent className="space-y-6">
-            {resendMessage && (
-              <Alert>
-                <CheckCircle className="h-4 w-4" />
-                <AlertDescription>{resendMessage}</AlertDescription>
-              </Alert>
-            )}
-
-            {resendError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{resendError}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="text-center space-y-4">
-              <div className="space-y-2">
-                <h3 className="font-medium">What's next?</h3>
-                <ol className="text-sm text-gray-600 space-y-1 text-left">
-                  <li>1. Check your email inbox</li>
-                  <li>2. Click the verification link</li>
-                  <li>3. Return here to sign in</li>
-                </ol>
-              </div>
-
-              <div className="space-y-3">
-                <Button
-                  onClick={handleResendEmail}
-                  variant="outline"
-                  className="w-full bg-transparent"
-                  disabled={isResending}
-                >
-                  {isResending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    "Resend Verification Email"
-                  )}
-                </Button>
-
-                <Button asChild className="w-full">
-                  <Link href="/auth/login">Continue to Sign In</Link>
-                </Button>
-              </div>
-            </div>
-
-            <div className="text-center text-sm text-gray-500">
-              <p>Didn't receive the email? Check your spam folder or try resending.</p>
-            </div>
+          <CardContent className="space-y-4">
+            <Button asChild className="w-full bg-emerald-600 hover:bg-emerald-700">
+              <Link href="/auth/login">Continue to Sign In</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+        <CardHeader className="text-center">
+          <div className="mx-auto w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center mb-4">
+            <Mail className="w-6 h-6 text-white" />
+          </div>
+          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+            Verify Your Email
+          </CardTitle>
+          <CardDescription className="text-gray-600">
+            We've sent a verification link to your email address. Please check your inbox and click the link to verify
+            your account.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {error && (
+            <Alert className="border-red-200 bg-red-50">
+              <AlertCircle className="w-4 h-4" />
+              <AlertDescription className="text-red-800">{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {resendSuccess && (
+            <Alert className="border-emerald-200 bg-emerald-50">
+              <CheckCircle className="w-4 h-4" />
+              <AlertDescription className="text-emerald-800">
+                Verification email sent successfully! Please check your inbox.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {email && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <p className="text-sm text-gray-700">
+                <strong>Email:</strong> {email}
+              </p>
+            </div>
+          )}
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 className="text-sm font-medium text-blue-900 mb-2">What to do next:</h3>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• Check your email inbox for a verification message</li>
+              <li>• Click the verification link in the email</li>
+              <li>• If you don't see it, check your spam/junk folder</li>
+              <li>• The link will expire in 24 hours</li>
+            </ul>
+          </div>
+
+          {email && (
+            <Button
+              onClick={handleResendVerification}
+              disabled={loading}
+              variant="outline"
+              className="w-full border-emerald-200 text-emerald-700 hover:bg-emerald-50 bg-transparent"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail className="w-4 h-4 mr-2" />
+                  Resend Verification Email
+                </>
+              )}
+            </Button>
+          )}
+
+          <div className="text-center space-y-2">
+            <Button asChild variant="ghost" className="text-emerald-600 hover:text-emerald-700">
+              <Link href="/auth/login">Back to Sign In</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

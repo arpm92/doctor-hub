@@ -1,162 +1,260 @@
-import Link from "next/link"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Check, Star, Crown, Shield } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Check, Star, Users, Calendar, BookOpen, MapPin, Phone, Mail } from 'lucide-react'
+import Link from "next/link"
+import { GoBackButton } from "@/components/go-back-button"
 
 export default function PricingPage() {
   const plans = [
     {
       name: "Basic",
-      icon: Shield,
-      price: "$99",
-      period: "/month",
-      description: "Perfect for getting started with our platform",
+      price: "Free",
+      description: "Perfect for getting started on our platform",
       features: [
-        "Professional profile listing",
+        "Basic profile listing",
         "Contact information display",
-        "Basic practice information",
-        "Patient reviews display",
-        "Mobile-responsive profile",
-        "Basic analytics dashboard",
+        "Professional credentials",
+        "Basic search visibility",
+        "Email support"
       ],
-      limitations: ["No online booking system", "No article publishing", "Limited customization options"],
-      buttonText: "Get Started",
-      popular: false,
+      limitations: [
+        "No online booking",
+        "No article publishing",
+        "Limited profile customization"
+      ],
+      buttonText: "Get Started Free",
+      buttonVariant: "outline" as const,
+      popular: false
     },
     {
-      name: "Medium",
-      icon: Star,
-      price: "$199",
+      name: "Professional",
+      price: "$29",
       period: "/month",
-      description: "Ideal for growing practices",
+      description: "Enhanced features for growing practices",
       features: [
         "Everything in Basic",
         "Online appointment booking",
-        "Calendar integration",
-        "Patient management tools",
-        "Email notifications",
-        "Advanced analytics",
-        "Priority customer support",
+        "Multiple practice locations",
+        "Enhanced profile customization",
+        "Priority search placement",
+        "Phone & email support",
+        "Basic analytics"
       ],
-      limitations: ["No article publishing", "Limited blog features"],
-      buttonText: "Choose Medium",
-      popular: true,
+      limitations: [
+        "Limited to 3 locations",
+        "No article publishing"
+      ],
+      buttonText: "Start Professional",
+      buttonVariant: "default" as const,
+      popular: true
     },
     {
       name: "Premium",
-      icon: Crown,
-      price: "$299",
+      price: "$59",
       period: "/month",
       description: "Complete solution for established practices",
       features: [
-        "Everything in Medium",
+        "Everything in Professional",
+        "Unlimited practice locations",
         "Article publishing platform",
-        "Blog management system",
-        "SEO optimization tools",
-        "Social media integration",
+        "Advanced analytics & insights",
         "Custom branding options",
-        "Dedicated account manager",
-        "Priority listing placement",
+        "Priority customer support",
+        "Featured listing placement",
+        "Patient review management"
       ],
       limitations: [],
       buttonText: "Go Premium",
-      popular: false,
-    },
+      buttonVariant: "default" as const,
+      popular: false
+    }
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100">
       <div className="container mx-auto px-4 py-8">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Home
-        </Link>
-
-        <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Choose Your Plan</h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Select the perfect plan for your practice. All plans include our core features with different levels of
-            functionality.
-          </p>
+        <div className="mb-12">
+          <GoBackButton fallbackUrl="/" className="mb-4" />
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">Join Our Network</h1>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
+              Choose the perfect plan to showcase your practice and connect with patients. All plans include our core features to help you grow your practice.
+            </p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        {/* Pricing Cards */}
+        <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8 mb-16">
           {plans.map((plan, index) => (
-            <Card
-              key={plan.name}
-              className={`relative overflow-hidden ${
-                plan.popular ? "ring-2 ring-blue-500 shadow-xl scale-105" : "hover:shadow-lg"
-              } transition-all duration-300`}
-            >
+            <Card key={plan.name} className={`relative border-2 shadow-xl ${plan.popular ? 'border-emerald-500 scale-105' : 'border-emerald-200'}`}>
               {plan.popular && (
-                <div className="absolute top-0 left-0 right-0 bg-blue-500 text-white text-center py-2 text-sm font-medium">
-                  Most Popular
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                  <Badge className="bg-emerald-600 text-white px-4 py-1">
+                    <Star className="h-3 w-3 mr-1" />
+                    Most Popular
+                  </Badge>
                 </div>
               )}
-
-              <CardHeader className={`text-center ${plan.popular ? "pt-12" : "pt-6"}`}>
-                <div className="flex justify-center mb-4">
-                  <plan.icon className={`h-12 w-12 ${plan.popular ? "text-blue-500" : "text-gray-600"}`} />
-                </div>
-                <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
-                <div className="flex items-baseline justify-center gap-1">
+              
+              <CardHeader className="text-center pb-6">
+                <CardTitle className="text-2xl font-bold text-emerald-900">{plan.name}</CardTitle>
+                <div className="mt-4">
                   <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
-                  <span className="text-gray-600">{plan.period}</span>
+                  {plan.period && <span className="text-gray-600">{plan.period}</span>}
                 </div>
-                <p className="text-gray-600 mt-2">{plan.description}</p>
+                <CardDescription className="mt-2">{plan.description}</CardDescription>
               </CardHeader>
-
+              
               <CardContent className="space-y-6">
                 <div>
                   <h4 className="font-semibold text-gray-900 mb-3">What's included:</h4>
                   <ul className="space-y-2">
                     {plan.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-start gap-3">
-                        <Check className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                      <li key={featureIndex} className="flex items-start gap-2">
+                        <Check className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
                         <span className="text-gray-700 text-sm">{feature}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
-
+                
                 {plan.limitations.length > 0 && (
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3">Not included:</h4>
+                    <h4 className="font-semibold text-gray-900 mb-3">Limitations:</h4>
                     <ul className="space-y-2">
                       {plan.limitations.map((limitation, limitIndex) => (
-                        <li key={limitIndex} className="flex items-start gap-3">
-                          <div className="w-5 h-5 flex-shrink-0 mt-0.5 flex items-center justify-center">
-                            <div className="w-1 h-1 bg-gray-400 rounded-full" />
-                          </div>
-                          <span className="text-gray-500 text-sm">{limitation}</span>
+                        <li key={limitIndex} className="flex items-start gap-2">
+                          <div className="w-4 h-4 border border-gray-300 rounded mt-0.5 flex-shrink-0" />
+                          <span className="text-gray-600 text-sm">{limitation}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
-
-                <Button
-                  asChild
-                  className={`w-full ${
-                    plan.popular ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-900 hover:bg-gray-800"
-                  }`}
-                  size="lg"
+                
+                <Button 
+                  asChild 
+                  variant={plan.buttonVariant}
+                  className={`w-full ${plan.buttonVariant === 'default' ? 'bg-emerald-600 hover:bg-emerald-700' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`}
                 >
-                  <Link href="/contact">{plan.buttonText}</Link>
+                  <Link href="/auth/doctor/register">
+                    {plan.buttonText}
+                  </Link>
                 </Button>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        <div className="text-center mt-16">
-          <p className="text-gray-600 mb-4">Need a custom solution for your organization?</p>
-          <Button variant="outline" asChild size="lg">
-            <Link href="/contact">Contact Sales</Link>
-          </Button>
+        {/* Features Comparison */}
+        <div className="max-w-4xl mx-auto mb-16">
+          <Card className="border-emerald-200 shadow-xl">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl text-emerald-900">Why Choose MedConnect?</CardTitle>
+              <CardDescription>
+                Join thousands of healthcare professionals who trust our platform
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Users className="h-8 w-8 text-emerald-600" />
+                  </div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Growing Network</h3>
+                  <p className="text-gray-600 text-sm">Connect with patients actively seeking healthcare providers in your area</p>
+                </div>
+                
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Calendar className="h-8 w-8 text-emerald-600" />
+                  </div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Easy Booking</h3>
+                  <p className="text-gray-600 text-sm">Streamlined appointment scheduling system for you and your patients</p>
+                </div>
+                
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <BookOpen className="h-8 w-8 text-emerald-600" />
+                  </div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Content Platform</h3>
+                  <p className="text-gray-600 text-sm">Share your expertise through our article publishing platform</p>
+                </div>
+                
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <MapPin className="h-8 w-8 text-emerald-600" />
+                  </div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Local Visibility</h3>
+                  <p className="text-gray-600 text-sm">Appear in local searches and help patients find you easily</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* FAQ Section */}
+        <div className="max-w-4xl mx-auto mb-16">
+          <Card className="border-emerald-200 shadow-xl">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl text-emerald-900">Frequently Asked Questions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">How do I get started?</h3>
+                <p className="text-gray-600">Simply click "Get Started Free" to create your account. You can upgrade to a paid plan at any time to unlock additional features.</p>
+              </div>
+              
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">Can I change plans later?</h3>
+                <p className="text-gray-600">Yes! You can upgrade or downgrade your plan at any time. Changes will be reflected in your next billing cycle.</p>
+              </div>
+              
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">What payment methods do you accept?</h3>
+                <p className="text-gray-600">We accept all major credit cards, PayPal, and bank transfers for annual subscriptions.</p>
+              </div>
+              
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">Is there a setup fee?</h3>
+                <p className="text-gray-600">No setup fees! You only pay the monthly or annual subscription fee for your chosen plan.</p>
+              </div>
+              
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">Do you offer customer support?</h3>
+                <p className="text-gray-600">Yes! All plans include customer support. Professional and Premium plans receive priority support with faster response times.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* CTA Section */}
+        <div className="text-center">
+          <Card className="border-emerald-200 shadow-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
+            <CardContent className="py-12">
+              <h2 className="text-3xl font-bold mb-4">Ready to Join Our Network?</h2>
+              <p className="text-xl mb-8 text-emerald-100">
+                Start connecting with patients today and grow your practice with MedConnect
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button asChild size="lg" variant="secondary" className="bg-white text-emerald-600 hover:bg-gray-100">
+                  <Link href="/auth/doctor/register">
+                    Get Started Free
+                  </Link>
+                </Button>
+                <Button asChild size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-emerald-600">
+                  <Link href="/contact">
+                    <Phone className="h-4 w-4 mr-2" />
+                    Contact Sales
+                  </Link>
+                </Button>
+              </div>
+              <p className="text-sm text-emerald-100 mt-4">
+                Questions? Email us at <a href="mailto:sales@medconnect.com" className="underline">sales@medconnect.com</a> or call <a href="tel:+1-555-0123" className="underline">+1 (555) 012-3456</a>
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

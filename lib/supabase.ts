@@ -8,6 +8,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
+    flowType: "pkce",
   },
 })
 
@@ -159,116 +160,7 @@ export const signUp = async (
 
     if (error) {
       console.error("Supabase auth error:", error.message)
-
-      // Handle specific database errors
-      if (error.message.includes("Database error saving new user")) {
-        console.log("Database trigger failed, attempting manual patient creation...")
-
-        // The user might still have been created in auth.users
-        if (data.user) {
-          console.log("User was created despite database error, attempting manual patient insert...")
-
-          // Wait a moment for any async operations
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-
-          try {
-            const { error: insertError } = await supabase.from("patients").upsert(
-              {
-                id: data.user.id,
-                email: data.user.email!,
-                first_name: userData.firstName.trim(),
-                last_name: userData.lastName.trim(),
-                phone: cleanPhone || null,
-                date_of_birth: userData.dateOfBirth,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              },
-              {
-                onConflict: "id",
-              },
-            )
-
-            if (insertError) {
-              console.error("Manual patient insert failed:", insertError)
-              return {
-                data: null,
-                error: {
-                  message: "Account created but profile setup failed. Please contact support or try signing in.",
-                },
-              }
-            } else {
-              console.log("Manual patient insert successful!")
-              return { data, error: null }
-            }
-          } catch (insertErr) {
-            console.error("Manual insert exception:", insertErr)
-            return {
-              data: null,
-              error: {
-                message: "Account created but profile setup failed. Please contact support or try signing in.",
-              },
-            }
-          }
-        } else {
-          return {
-            data: null,
-            error: { message: "Failed to create account due to database error. Please try again." },
-          }
-        }
-      }
-
-      // Handle other specific errors
-      if (error.message.includes("already registered") || error.message.includes("already exists")) {
-        return { data: null, error: { message: "An account with this email already exists. Please sign in instead." } }
-      }
-
-      if (error.message.includes("Password")) {
-        return { data: null, error: { message: "Password does not meet security requirements." } }
-      }
-
-      if (error.message.includes("fetch") || error.message.includes("network")) {
-        return {
-          data: null,
-          error: { message: "Network connection error. Please check your internet connection and try again." },
-        }
-      }
-
       return { data: null, error }
-    }
-
-    if (data.user) {
-      console.log("Registration successful!")
-
-      // Verify patient record was created
-      console.log("Verifying patient record...")
-      const { data: patientData, error: patientError } = await supabase
-        .from("patients")
-        .select("*")
-        .eq("id", data.user.id)
-        .single()
-
-      if (patientError) {
-        console.log("Patient record verification failed:", patientError)
-        console.log("Attempting to create patient record manually...")
-
-        const { error: insertError } = await supabase.from("patients").insert({
-          id: data.user.id,
-          email: data.user.email!,
-          first_name: userData.firstName.trim(),
-          last_name: userData.lastName.trim(),
-          phone: cleanPhone || null,
-          date_of_birth: userData.dateOfBirth,
-        })
-
-        if (insertError) {
-          console.error("Manual patient creation failed:", insertError)
-          // Don't fail the registration, user can complete profile later
-        } else {
-          console.log("Manual patient creation successful!")
-        }
-      } else {
-        console.log("Patient record verified:", patientData.id)
-      }
     }
 
     console.log("=== SIGNUP COMPLETE ===")
@@ -286,7 +178,7 @@ export const signUp = async (
   }
 }
 
-// Doctor signup function
+// Doctor signup function with improved error handling
 export const doctorSignUp = async (
   email: string,
   password: string,
@@ -325,7 +217,7 @@ export const doctorSignUp = async (
       email,
       password,
       options: {
-        emailRedirectTo: `${origin}/auth/callback`,
+        emailRedirectTo: `${origin}/auth/callback?type=doctor`,
         data: {
           user_type: "doctor",
           first_name: doctorData.firstName.trim(),
@@ -351,16 +243,27 @@ export const doctorSignUp = async (
     if (error) {
       console.error("Supabase auth error:", error.message)
 
-      // Handle specific database errors
-      if (error.message.includes("Database error saving new user")) {
-        console.log("Database trigger failed, attempting manual doctor creation...")
+      // Handle specific error cases
+      if (error.message.includes("already registered") || error.message.includes("already exists")) {
+        return { data: null, error: { message: "An account with this email already exists. Please sign in instead." } }
+      }
 
-        // The user might still have been created in auth.users
+      if (error.message.includes("Password")) {
+        return { data: null, error: { message: "Password does not meet security requirements." } }
+      }
+
+      if (error.message.includes("Database error saving new user")) {
+        // This is the trigger error - let's handle it gracefully
+        console.log("Database trigger error detected, but user may have been created")
+
         if (data.user) {
-          console.log("User was created despite database error, attempting manual doctor creation via RPC...")
+          console.log("User was created despite trigger error, attempting manual doctor creation...")
+
+          // Wait a moment for any async operations
+          await new Promise((resolve) => setTimeout(resolve, 2000))
 
           try {
-            // Use the RPC function to create the doctor profile
+            // Try to create the doctor profile manually using the RPC function
             const { data: doctorProfile, error: rpcError } = await supabase.rpc("create_doctor_profile", {
               user_id: data.user.id,
               user_email: data.user.email!,
@@ -370,23 +273,48 @@ export const doctorSignUp = async (
               specialty: doctorData.specialty.trim(),
               years_experience: doctorData.yearsExperience,
               bio: doctorData.bio?.trim() || null,
-              tier: "basic",
             })
 
             if (rpcError) {
-              console.error("Manual doctor creation via RPC failed:", rpcError)
-              return {
-                data: null,
-                error: {
-                  message: "Account created but profile setup failed. Please contact support or try signing in.",
+              console.error("RPC function failed:", rpcError)
+              // Try direct insert as fallback
+              const { error: insertError } = await supabase.from("doctors").upsert(
+                {
+                  id: data.user.id,
+                  email: data.user.email!,
+                  first_name: doctorData.firstName.trim(),
+                  last_name: doctorData.lastName.trim(),
+                  phone: cleanPhone || null,
+                  specialty: doctorData.specialty.trim(),
+                  years_experience: doctorData.yearsExperience,
+                  bio: doctorData.bio?.trim() || null,
+                  status: "pending",
+                  tier: "basic",
                 },
+                {
+                  onConflict: "id",
+                },
+              )
+
+              if (insertError) {
+                console.error("Direct insert also failed:", insertError)
+                return {
+                  data: null,
+                  error: {
+                    message: "Account created but profile setup failed. Please contact support or try signing in.",
+                  },
+                }
+              } else {
+                console.log("Direct insert successful!")
               }
             } else {
-              console.log("Manual doctor creation via RPC successful!")
-              return { data, error: null }
+              console.log("RPC function successful!")
             }
-          } catch (rpcErr) {
-            console.error("RPC exception:", rpcErr)
+
+            // Registration was successful despite the trigger error
+            return { data, error: null }
+          } catch (manualErr) {
+            console.error("Manual doctor creation failed:", manualErr)
             return {
               data: null,
               error: {
@@ -397,24 +325,8 @@ export const doctorSignUp = async (
         } else {
           return {
             data: null,
-            error: { message: "Failed to create account due to database error. Please try again." },
+            error: { message: "Failed to create account. Please try again." },
           }
-        }
-      }
-
-      // Handle other specific errors
-      if (error.message.includes("already registered") || error.message.includes("already exists")) {
-        return { data: null, error: { message: "An account with this email already exists. Please sign in instead." } }
-      }
-
-      if (error.message.includes("Password")) {
-        return { data: null, error: { message: "Password does not meet security requirements." } }
-      }
-
-      if (error.message.includes("fetch") || error.message.includes("network")) {
-        return {
-          data: null,
-          error: { message: "Network connection error. Please check your internet connection and try again." },
         }
       }
 
@@ -433,35 +345,37 @@ export const doctorSignUp = async (
         .from("doctors")
         .select("*")
         .eq("id", data.user.id)
-        .single()
+        .maybeSingle()
 
-      if (doctorError) {
-        console.log("Doctor record verification failed:", doctorError)
-        console.log("Attempting to create doctor record manually via RPC...")
+      if (doctorError || !doctorRecord) {
+        console.log("Doctor record not found, creating manually...")
 
         try {
-          // Use the RPC function to create the doctor profile
-          const { data: doctorProfile, error: rpcError } = await supabase.rpc("create_doctor_profile", {
-            user_id: data.user.id,
-            user_email: data.user.email!,
-            first_name: doctorData.firstName.trim(),
-            last_name: doctorData.lastName.trim(),
-            phone: cleanPhone || null,
-            specialty: doctorData.specialty.trim(),
-            years_experience: doctorData.yearsExperience,
-            bio: doctorData.bio?.trim() || null,
-            tier: "basic",
-          })
+          const { error: createError } = await supabase.from("doctors").upsert(
+            {
+              id: data.user.id,
+              email: data.user.email!,
+              first_name: doctorData.firstName.trim(),
+              last_name: doctorData.lastName.trim(),
+              phone: cleanPhone || null,
+              specialty: doctorData.specialty.trim(),
+              years_experience: doctorData.yearsExperience,
+              bio: doctorData.bio?.trim() || null,
+              status: "pending",
+              tier: "basic",
+            },
+            {
+              onConflict: "id",
+            },
+          )
 
-          if (rpcError) {
-            console.error("Manual doctor creation via RPC failed:", rpcError)
-            // Don't fail the registration, user can complete profile later
+          if (createError) {
+            console.error("Manual doctor creation failed:", createError)
           } else {
-            console.log("Manual doctor creation via RPC successful!")
+            console.log("Manual doctor creation successful!")
           }
-        } catch (rpcErr) {
-          console.error("RPC creation exception:", rpcErr)
-          // Don't fail the registration
+        } catch (createErr) {
+          console.error("Manual creation exception:", createErr)
         }
       } else {
         console.log("Doctor record verified:", doctorRecord.id)
@@ -505,7 +419,7 @@ export const adminSignUp = async (
       email,
       password,
       options: {
-        emailRedirectTo: `${origin}/auth/callback`,
+        emailRedirectTo: `${origin}/auth/callback?type=admin`,
         data: {
           user_type: "admin",
           first_name: adminData.firstName.trim(),

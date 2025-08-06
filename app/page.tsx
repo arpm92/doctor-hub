@@ -1,15 +1,13 @@
+import { Suspense } from "react"
 import { HeroSection } from "@/components/hero-section"
-import { SpecialtySection } from "@/components/specialty-section"
 import { JoinUsSection } from "@/components/join-us-section"
 import { Button } from "@/components/ui/button"
-import { MapPin } from "lucide-react"
+import { MapPin, Loader2 } from 'lucide-react'
 import Link from "next/link"
-import { getDoctorsBySpecialty } from "@/lib/doctors"
 import { MapPreview } from "@/components/map-preview"
+import { DatabaseDoctorsSection } from "@/components/database-doctors-section"
 
 export default function HomePage() {
-  const doctorsBySpecialty = getDoctorsBySpecialty()
-
   return (
     <div className="min-h-screen">
       <HeroSection />
@@ -30,9 +28,16 @@ export default function HomePage() {
           </Button>
         </div>
 
-        {Object.entries(doctorsBySpecialty).map(([specialty, doctors]) => (
-          <SpecialtySection key={specialty} specialty={specialty} doctors={doctors} />
-        ))}
+        <Suspense 
+          fallback={
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+              <span className="ml-2 text-gray-600">Loading doctors...</span>
+            </div>
+          }
+        >
+          <DatabaseDoctorsSection />
+        </Suspense>
       </div>
 
       <MapPreview />

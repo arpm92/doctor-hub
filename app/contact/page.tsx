@@ -1,284 +1,199 @@
-"use client"
-
-import type React from "react"
-
-import { useState } from "react"
-import Link from "next/link"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Mail, Phone, MapPin, Clock } from "lucide-react"
+import { Mail, Phone, MapPin, Clock, Send, Heart } from 'lucide-react'
+import { GoBackButton } from "@/components/go-back-button"
 
 export default function ContactPage() {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    specialty: "",
-    experience: "",
-    plan: "",
-    message: "",
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Mock submission
-    alert("Thank you for your interest! We'll contact you within 24 hours to discuss your application.")
-    console.log("Contact form data:", formData)
-  }
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-  }
-
-  const specialties = [
-    "Cardiologist",
-    "Neurologist",
-    "Pediatrician",
-    "Orthopedic Surgeon",
-    "Dermatologist",
-    "Psychiatrist",
-    "General Practitioner",
-    "Oncologist",
-    "Radiologist",
-    "Other",
-  ]
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100">
       <div className="container mx-auto px-4 py-8">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Home
-        </Link>
+        <div className="mb-8">
+          <GoBackButton fallbackUrl="/" className="mb-4" />
+          <h1 className="text-3xl font-bold text-gray-900">Contact Us</h1>
+          <p className="text-gray-600 mt-2">Get in touch with our team or join our network of healthcare professionals</p>
+        </div>
 
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Join Our Network</h1>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Ready to expand your practice and connect with more patients? Fill out the form below and we'll get back
-              to you within 24 hours.
-            </p>
+        <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-8">
+          {/* Contact Information */}
+          <div className="space-y-6">
+            <Card className="border-emerald-200 shadow-xl">
+              <CardHeader>
+                <CardTitle className="text-2xl text-emerald-900">Get in Touch</CardTitle>
+                <CardDescription>
+                  We're here to help you with any questions or to assist you in joining our network.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+                      <Phone className="h-6 w-6 text-emerald-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Phone</h3>
+                      <p className="text-gray-600">+1 (555) 012-3456</p>
+                      <p className="text-sm text-gray-500">Mon-Fri 8AM-6PM EST</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+                      <Mail className="h-6 w-6 text-emerald-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Email</h3>
+                      <p className="text-gray-600">info@medconnect.com</p>
+                      <p className="text-sm text-gray-500">We'll respond within 24 hours</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+                      <MapPin className="h-6 w-6 text-emerald-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Address</h3>
+                      <p className="text-gray-600">123 Medical Center Drive</p>
+                      <p className="text-gray-600">Healthcare City, HC 12345</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+                      <Clock className="h-6 w-6 text-emerald-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Business Hours</h3>
+                      <p className="text-gray-600">Monday - Friday: 8:00 AM - 6:00 PM</p>
+                      <p className="text-gray-600">Saturday: 9:00 AM - 2:00 PM</p>
+                      <p className="text-gray-600">Sunday: Closed</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-emerald-200 pt-6">
+                  <h3 className="font-semibold text-emerald-900 mb-3">For Healthcare Professionals</h3>
+                  <p className="text-gray-600 mb-4">
+                    Interested in joining our network? We'd love to hear from you!
+                  </p>
+                  <Button asChild className="bg-emerald-600 hover:bg-emerald-700">
+                    <a href="/auth/doctor/register" className="flex items-center gap-2">
+                      <Heart className="h-4 w-4" />
+                      Join Our Network
+                    </a>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Contact Form */}
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-2xl">Application Form</CardTitle>
-                  <p className="text-gray-600">Tell us about yourself and your practice</p>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Full Name *</Label>
-                        <Input
-                          id="name"
-                          type="text"
-                          placeholder="Dr. John Smith"
-                          value={formData.name}
-                          onChange={(e) => handleInputChange("name", e.target.value)}
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email Address *</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="doctor@example.com"
-                          value={formData.email}
-                          onChange={(e) => handleInputChange("email", e.target.value)}
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number</Label>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          placeholder="(555) 123-4567"
-                          value={formData.phone}
-                          onChange={(e) => handleInputChange("phone", e.target.value)}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="specialty">Medical Specialty *</Label>
-                        <Select
-                          value={formData.specialty}
-                          onValueChange={(value) => handleInputChange("specialty", value)}
-                          required
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select your specialty" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {specialties.map((specialty) => (
-                              <SelectItem key={specialty} value={specialty}>
-                                {specialty}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="experience">Years of Experience</Label>
-                        <Select
-                          value={formData.experience}
-                          onValueChange={(value) => handleInputChange("experience", value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select experience" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1-5">1-5 years</SelectItem>
-                            <SelectItem value="6-10">6-10 years</SelectItem>
-                            <SelectItem value="11-15">11-15 years</SelectItem>
-                            <SelectItem value="16-20">16-20 years</SelectItem>
-                            <SelectItem value="20+">20+ years</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="plan">Interested Plan</Label>
-                        <Select value={formData.plan} onValueChange={(value) => handleInputChange("plan", value)}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a plan" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="basic">Basic - $99/month</SelectItem>
-                            <SelectItem value="medium">Medium - $199/month</SelectItem>
-                            <SelectItem value="premium">Premium - $299/month</SelectItem>
-                            <SelectItem value="custom">Custom Solution</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
+          {/* Contact Form */}
+          <div>
+            <Card className="border-emerald-200 shadow-xl">
+              <CardHeader>
+                <CardTitle className="text-2xl text-emerald-900">Send us a Message</CardTitle>
+                <CardDescription>
+                  Fill out the form below and we'll get back to you as soon as possible.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="message">Tell us about your practice</Label>
-                      <Textarea
-                        id="message"
-                        placeholder="Describe your practice, location, patient volume, and what you hope to achieve by joining our network..."
-                        value={formData.message}
-                        onChange={(e) => handleInputChange("message", e.target.value)}
-                        rows={5}
+                      <Label htmlFor="firstName" className="text-gray-700 font-medium">
+                        First Name *
+                      </Label>
+                      <Input
+                        id="firstName"
+                        type="text"
+                        required
+                        className="border-emerald-200 focus:border-emerald-500 focus:ring-emerald-500"
+                        placeholder="Enter your first name"
                       />
                     </div>
-
-                    <Button type="submit" size="lg" className="w-full">
-                      Submit Application
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Contact Information */}
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Contact Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <Mail className="h-5 w-5 text-blue-600 mt-1" />
-                    <div>
-                      <div className="font-medium">Email</div>
-                      <div className="text-gray-600">partnerships@medicalnetwork.com</div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName" className="text-gray-700 font-medium">
+                        Last Name *
+                      </Label>
+                      <Input
+                        id="lastName"
+                        type="text"
+                        required
+                        className="border-emerald-200 focus:border-emerald-500 focus:ring-emerald-500"
+                        placeholder="Enter your last name"
+                      />
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-3">
-                    <Phone className="h-5 w-5 text-blue-600 mt-1" />
-                    <div>
-                      <div className="font-medium">Phone</div>
-                      <div className="text-gray-600">(555) 123-4567</div>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-gray-700 font-medium">
+                      Email Address *
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      required
+                      className="border-emerald-200 focus:border-emerald-500 focus:ring-emerald-500"
+                      placeholder="Enter your email address"
+                    />
                   </div>
 
-                  <div className="flex items-start gap-3">
-                    <MapPin className="h-5 w-5 text-blue-600 mt-1" />
-                    <div>
-                      <div className="font-medium">Address</div>
-                      <div className="text-gray-600">
-                        123 Healthcare Plaza
-                        <br />
-                        Suite 100
-                        <br />
-                        New York, NY 10001
-                      </div>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-gray-700 font-medium">
+                      Phone Number
+                    </Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      className="border-emerald-200 focus:border-emerald-500 focus:ring-emerald-500"
+                      placeholder="Enter your phone number"
+                    />
                   </div>
 
-                  <div className="flex items-start gap-3">
-                    <Clock className="h-5 w-5 text-blue-600 mt-1" />
-                    <div>
-                      <div className="font-medium">Business Hours</div>
-                      <div className="text-gray-600">
-                        Monday - Friday
-                        <br />
-                        9:00 AM - 6:00 PM EST
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>What Happens Next?</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium">
-                      1
-                    </div>
-                    <div className="text-sm">
-                      <div className="font-medium">Application Review</div>
-                      <div className="text-gray-600">We review your application within 24 hours</div>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="subject" className="text-gray-700 font-medium">
+                      Subject *
+                    </Label>
+                    <Input
+                      id="subject"
+                      type="text"
+                      required
+                      className="border-emerald-200 focus:border-emerald-500 focus:ring-emerald-500"
+                      placeholder="What is this regarding?"
+                    />
                   </div>
 
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium">
-                      2
-                    </div>
-                    <div className="text-sm">
-                      <div className="font-medium">Consultation Call</div>
-                      <div className="text-gray-600">Schedule a call to discuss your needs</div>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="message" className="text-gray-700 font-medium">
+                      Message *
+                    </Label>
+                    <Textarea
+                      id="message"
+                      required
+                      className="border-emerald-200 focus:border-emerald-500 focus:ring-emerald-500 min-h-[120px]"
+                      placeholder="Please provide details about your inquiry..."
+                    />
                   </div>
 
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium">
-                      3
-                    </div>
-                    <div className="text-sm">
-                      <div className="font-medium">Profile Setup</div>
-                      <div className="text-gray-600">We help you create your professional profile</div>
-                    </div>
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                    <p className="text-sm text-emerald-800">
+                      <strong>Note:</strong> This is a demo contact form. In a production environment, this would be connected to a backend service to handle form submissions.
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold py-3"
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    Send Message
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,21 +9,10 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import {
-  Search,
-  Filter,
-  MoreHorizontal,
-  UserCheck,
-  UserX,
-  UserMinus,
-  ExternalLink,
-  AlertTriangle,
-  Crown,
-  Star,
-  Shield,
-} from "lucide-react"
-import { getAllDoctors, updateDoctorStatus, updateDoctorProfile, getCurrentAdmin, type Doctor } from "@/lib/supabase"
+import { Search, Filter, ExternalLink, AlertTriangle, Crown, Star, Shield, User, Calendar, Award } from "lucide-react"
+import { getAllDoctors, updateDoctorStatus, updateDoctorProfile, type Doctor } from "@/lib/supabase"
+import Link from "next/link"
+import { getCurrentAdmin } from "@/lib/adminAccess" // Import getCurrentAdmin
 
 const statusColors = {
   pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
@@ -49,10 +38,10 @@ export default function AdminDoctorsPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([])
   const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [tierFilter, setTierFilter] = useState<string>("all")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [tierFilter, setTierFilter] = useState("all")
   const [updatingDoctors, setUpdatingDoctors] = useState<Set<string>>(new Set())
   const [tierFeatureAvailable, setTierFeatureAvailable] = useState(true)
 
@@ -81,7 +70,7 @@ export default function AdminDoctorsPage() {
   const loadDoctors = async () => {
     try {
       setLoading(true)
-      setError(null)
+      setError("")
       const { doctors: doctorsData, error: doctorsError } = await getAllDoctors()
 
       if (doctorsError) {
@@ -302,9 +291,9 @@ export default function AdminDoctorsPage() {
                   <TableHead>Specialty</TableHead>
                   <TableHead>Experience</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Tier</TableHead>
+                  {tierFeatureAvailable && <TableHead>Tier</TableHead>}
                   <TableHead>Registered</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -323,106 +312,47 @@ export default function AdminDoctorsPage() {
                             {doctor.first_name} {doctor.last_name}
                           </div>
                           <div className="text-sm text-gray-500">{doctor.email}</div>
+                          {doctor.phone && <div className="text-sm text-gray-500">{doctor.phone}</div>}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary">{doctor.specialty}</Badge>
+                        <div className="flex items-center gap-2">
+                          <Award className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm">{doctor.specialty}</span>
+                        </div>
                       </TableCell>
-                      <TableCell>{doctor.years_experience} years</TableCell>
-                      <TableCell>{getStatusBadge(doctor.status)}</TableCell>
                       <TableCell>
-                        {tierFeatureAvailable ? (
-                          getTierBadge(doctor.tier)
-                        ) : (
-                          <Badge variant="outline" className="text-gray-400">
-                            N/A
-                          </Badge>
-                        )}
+                        <span className="text-sm">{doctor.years_experience} years</span>
                       </TableCell>
-                      <TableCell className="text-sm text-gray-500">
-                        {new Date(doctor.created_at).toLocaleDateString()}
+                      <TableCell>{getStatusBadge(doctor.status)}</TableCell>
+                      {tierFeatureAvailable && <TableCell>{getTierBadge(doctor.tier)}</TableCell>}
+                      <TableCell>
+                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                          <Calendar className="w-4 h-4" />
+                          {new Date(doctor.created_at).toLocaleDateString()}
+                        </div>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" disabled={updatingDoctors.has(doctor.id)}>
-                              <MoreHorizontal className="h-4 w-4" />
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {doctor.slug && (
+                            <Button asChild size="sm" variant="outline">
+                              <Link href={`/doctors/${doctor.slug}`} target="_blank">
+                                <ExternalLink className="w-4 h-4" />
+                              </Link>
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem
-                              onClick={() => window.open(`/doctors/${doctor.slug || doctor.id}`, "_blank")}
-                            >
-                              <ExternalLink className="mr-2 h-4 w-4" />
-                              View Profile
-                            </DropdownMenuItem>
-
-                            {doctor.status !== "approved" && (
-                              <DropdownMenuItem
-                                onClick={() => handleStatusUpdate(doctor.id, "approved")}
-                                className="text-green-600"
-                              >
-                                <UserCheck className="mr-2 h-4 w-4" />
-                                Approve
-                              </DropdownMenuItem>
-                            )}
-
-                            {doctor.status !== "rejected" && (
-                              <DropdownMenuItem
-                                onClick={() => handleStatusUpdate(doctor.id, "rejected")}
-                                className="text-red-600"
-                              >
-                                <UserX className="mr-2 h-4 w-4" />
-                                Reject
-                              </DropdownMenuItem>
-                            )}
-
-                            {doctor.status !== "suspended" && (
-                              <DropdownMenuItem
-                                onClick={() => handleStatusUpdate(doctor.id, "suspended")}
-                                className="text-orange-600"
-                              >
-                                <UserMinus className="mr-2 h-4 w-4" />
-                                Suspend
-                              </DropdownMenuItem>
-                            )}
-
-                            {tierFeatureAvailable && (
-                              <>
-                                <DropdownMenuItem className="font-medium text-gray-500 cursor-default">
-                                  Change Tier:
-                                </DropdownMenuItem>
-                                {doctor.tier !== "basic" && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleTierUpdate(doctor.id, "basic")}
-                                    className="pl-6"
-                                  >
-                                    <Shield className="mr-2 h-4 w-4" />
-                                    Basic
-                                  </DropdownMenuItem>
-                                )}
-                                {doctor.tier !== "medium" && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleTierUpdate(doctor.id, "medium")}
-                                    className="pl-6"
-                                  >
-                                    <Star className="mr-2 h-4 w-4" />
-                                    Medium
-                                  </DropdownMenuItem>
-                                )}
-                                {doctor.tier !== "premium" && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleTierUpdate(doctor.id, "premium")}
-                                    className="pl-6"
-                                  >
-                                    <Crown className="mr-2 h-4 w-4" />
-                                    Premium
-                                  </DropdownMenuItem>
-                                )}
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={updatingDoctors.has(doctor.id)}
+                            onClick={() => {
+                              // Add view profile functionality here if needed
+                              console.log("View profile:", doctor.id)
+                            }}
+                          >
+                            {updatingDoctors.has(doctor.id) ? "..." : "View"}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -432,6 +362,65 @@ export default function AdminDoctorsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total</p>
+                <p className="text-2xl font-bold text-gray-900">{doctors.length}</p>
+              </div>
+              <User className="w-8 h-8 text-gray-400" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Pending</p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {doctors.filter((d) => d.status === "pending").length}
+                </p>
+              </div>
+              <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Approved</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {doctors.filter((d) => d.status === "approved").length}
+                </p>
+              </div>
+              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Rejected</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {doctors.filter((d) => d.status === "rejected").length}
+                </p>
+              </div>
+              <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

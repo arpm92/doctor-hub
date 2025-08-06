@@ -15,19 +15,15 @@ CREATE OR REPLACE FUNCTION create_doctor_profile(
   first_name TEXT,
   last_name TEXT,
   phone TEXT DEFAULT NULL,
-  specialty TEXT,
-  years_experience INTEGER,
+  specialty TEXT DEFAULT NULL,
+  years_experience INTEGER DEFAULT 0,
   bio TEXT DEFAULT NULL,
   tier TEXT DEFAULT 'basic'
 )
-RETURNS UUID
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
+RETURNS doctors AS $$
 DECLARE
-  doctor_id UUID;
+  new_doctor doctors;
 BEGIN
-  -- Insert the doctor profile
   INSERT INTO doctors (
     id,
     email,
@@ -55,50 +51,18 @@ BEGIN
     NOW(),
     NOW()
   )
-  RETURNING id INTO doctor_id;
-
-  RETURN doctor_id;
-END;
-$$;
-
--- Update the trigger function to include tier
-CREATE OR REPLACE FUNCTION handle_new_doctor()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-BEGIN
-  -- Only process if this is a doctor signup
-  IF NEW.raw_user_meta_data->>'user_type' = 'doctor' THEN
-    INSERT INTO doctors (
-      id,
-      email,
-      first_name,
-      last_name,
-      phone,
-      specialty,
-      years_experience,
-      bio,
-      status,
-      tier,
-      created_at,
-      updated_at
-    ) VALUES (
-      NEW.id,
-      NEW.email,
-      NEW.raw_user_meta_data->>'first_name',
-      NEW.raw_user_meta_data->>'last_name',
-      NEW.raw_user_meta_data->>'phone',
-      NEW.raw_user_meta_data->>'specialty',
-      COALESCE((NEW.raw_user_meta_data->>'years_experience')::INTEGER, 0),
-      NEW.raw_user_meta_data->>'bio',
-      'pending',
-      'basic',
-      NOW(),
-      NOW()
-    );
-  END IF;
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    first_name = EXCLUDED.first_name,
+    last_name = EXCLUDED.last_name,
+    phone = EXCLUDED.phone,
+    specialty = EXCLUDED.specialty,
+    years_experience = EXCLUDED.years_experience,
+    bio = EXCLUDED.bio,
+    tier = EXCLUDED.tier,
+    updated_at = NOW()
+  RETURNING * INTO new_doctor;
   
-  RETURN NEW;
+  RETURN new_doctor;
 END;
-$$;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
