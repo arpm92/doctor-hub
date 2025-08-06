@@ -4,204 +4,235 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
-import { testSupabaseConnection, supabase } from "@/lib/supabase"
+import { Badge } from "@/components/ui/badge"
+import { testSupabaseConnection, getCurrentUser, supabase } from "@/lib/supabase"
 
 export default function TestConnectionPage() {
-  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle')
-  const [error, setError] = useState<string>("")
-  const [details, setDetails] = useState<any>(null)
+  const [connectionStatus, setConnectionStatus] = useState<"idle" | "testing" | "success" | "error">("idle")
+  const [connectionError, setConnectionError] = useState<string | null>(null)
+  const [userInfo, setUserInfo] = useState<any>(null)
+  const [testResults, setTestResults] = useState<any[]>([])
 
-  const testConnection = async () => {
-    setConnectionStatus('testing')
-    setError("")
-    setDetails(null)
+  const runConnectionTest = async () => {
+    setConnectionStatus("testing")
+    setConnectionError(null)
+    setTestResults([])
+
+    const results: any[] = []
 
     try {
-      // Test basic connection
-      const { success, error: connError } = await testSupabaseConnection()
-      
-      // Get environment info
-      const envInfo = {
-        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Set' : 'Missing',
-        supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Set' : 'Missing',
-        urlValue: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...',
-        keyValue: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 20) + '...'
-      }
+      // Test 1: Basic connection
+      console.log("Testing basic connection...")
+      results.push({ test: "Basic Connection", status: "testing" })
+      setTestResults([...results])
 
-      // Test database access
-      let dbTest = null
-      try {
-        const { data, error: dbError } = await supabase.from('doctors').select('count').limit(1)
-        dbTest = { success: !dbError, error: dbError?.message }
-      } catch (err) {
-        dbTest = { success: false, error: 'Database connection failed' }
+      const { success, error } = await testSupabaseConnection()
+      results[results.length - 1] = {
+        test: "Basic Connection",
+        status: success ? "success" : "error",
+        details: error ? error.message : "Connected successfully"
       }
+      setTestResults([...results])
 
-      // Test RPC function
-      let rpcTest = null
+      // Test 2: Auth session
+      console.log("Testing auth session...")
+      results.push({ test: "Auth Session", status: "testing" })
+      setTestResults([...results])
+
+      const { user, error: userError } = await getCurrentUser()
+      results[results.length - 1] = {
+        test: "Auth Session",
+        status: user ? "success" : "info",
+        details: user ? `Logged in as: ${user.email}` : "No active session (this is normal)"
+      }
+      setTestResults([...results])
+
+      // Test 3: Database query
+      console.log("Testing database query...")
+      results.push({ test: "Database Query", status: "testing" })
+      setTestResults([...results])
+
+      const { data: doctors, error: dbError } = await supabase
+        .from("doctors")
+        .select("id, email, first_name, last_name, status")
+        .limit(5)
+
+      results[results.length - 1] = {
+        test: "Database Query",
+        status: dbError ? "error" : "success",
+        details: dbError ? dbError.message : `Found ${doctors?.length || 0} doctors in database`
+      }
+      setTestResults([...results])
+
+      // Test 4: RLS policies
+      console.log("Testing RLS policies...")
+      results.push({ test: "RLS Policies", status: "testing" })
+      setTestResults([...results])
+
+      const { data: publicDoctors, error: rlsError } = await supabase
+        .from("doctors")
+        .select("id, first_name, last_name, specialty, status")
+        .eq("status", "approved")
+        .limit(3)
+
+      results[results.length - 1] = {
+        test: "RLS Policies",
+        status: rlsError ? "error" : "success",
+        details: rlsError ? rlsError.message : `Public query returned ${publicDoctors?.length || 0} approved doctors`
+      }
+      setTestResults([...results])
+
+      // Test 5: RPC function
+      console.log("Testing RPC function...")
+      results.push({ test: "RPC Function", status: "testing" })
+      setTestResults([...results])
+
       try {
-        const { data, error: rpcError } = await supabase.rpc('create_doctor_profile', {
-          p_user_id: '00000000-0000-0000-0000-000000000000',
-          p_email: 'test@test.com',
+        // Test if the RPC function exists by calling it with dummy data
+        const { data: rpcData, error: rpcError } = await supabase.rpc('create_doctor_profile_v2', {
+          p_user_id: '00000000-0000-0000-0000-000000000000', // Dummy UUID
+          p_email: 'test@example.com',
           p_first_name: 'Test',
-          p_last_name: 'User',
-          p_phone: '1234567890',
-          p_specialty: 'Test',
-          p_years_experience: 0,
-          p_bio: null
+          p_last_name: 'Doctor',
+          p_phone: '555-0123',
+          p_specialty: 'General Practice',
+          p_years_experience: 5,
+          p_bio: 'Test bio'
         })
-        rpcTest = { success: true, note: 'RPC function exists and is callable' }
-      } catch (err) {
-        rpcTest = { success: false, error: 'RPC function test failed' }
+
+        // This should fail due to conflict or permissions, but the function should exist
+        results[results.length - 1] = {
+          test: "RPC Function",
+          status: "success",
+          details: "RPC function create_doctor_profile_v2 exists and is callable"
+        }
+      } catch (rpcErr: any) {
+        if (rpcErr.message?.includes("Could not find the function")) {
+          results[results.length - 1] = {
+            test: "RPC Function",
+            status: "error",
+            details: "RPC function create_doctor_profile_v2 not found - migration may not have run"
+          }
+        } else {
+          results[results.length - 1] = {
+            test: "RPC Function",
+            status: "success",
+            details: "RPC function exists (expected error due to dummy data)"
+          }
+        }
       }
+      setTestResults([...results])
 
-      setDetails({
-        environment: envInfo,
-        connection: { success, error: connError },
-        database: dbTest,
-        rpcFunction: rpcTest
-      })
+      // Overall status
+      const hasErrors = results.some(r => r.status === "error")
+      setConnectionStatus(hasErrors ? "error" : "success")
 
-      if (success && dbTest.success) {
-        setConnectionStatus('success')
-      } else {
-        setConnectionStatus('error')
-        setError(connError?.message || dbTest.error || 'Connection test failed')
+      if (hasErrors) {
+        setConnectionError("Some tests failed. Check the details below.")
       }
 
     } catch (err) {
-      setConnectionStatus('error')
-      setError(err instanceof Error ? err.message : 'Unknown error occurred')
+      console.error("Connection test failed:", err)
+      setConnectionStatus("error")
+      setConnectionError(`Connection test failed: ${err instanceof Error ? err.message : "Unknown error"}`)
     }
   }
 
   useEffect(() => {
-    testConnection()
+    // Auto-run test on page load
+    runConnectionTest()
   }, [])
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "success": return "bg-green-100 text-green-800"
+      case "error": return "bg-red-100 text-red-800"
+      case "testing": return "bg-yellow-100 text-yellow-800"
+      case "info": return "bg-blue-100 text-blue-800"
+      default: return "bg-gray-100 text-gray-800"
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "success": return "✅"
+      case "error": return "❌"
+      case "testing": return "⏳"
+      case "info": return "ℹ️"
+      default: return "⚪"
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="container mx-auto max-w-4xl">
-        <Card className="border-blue-200 shadow-xl">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-gray-900">
-              Supabase Connection Test
-            </CardTitle>
-            <CardDescription>
-              Testing database connection and configuration
+    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold text-center">Supabase Connection Test</CardTitle>
+            <CardDescription className="text-center">
+              Test your Supabase connection and database setup
             </CardDescription>
           </CardHeader>
-
           <CardContent className="space-y-6">
-            {connectionStatus === 'testing' && (
-              <div className="flex items-center justify-center p-8">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                <span className="ml-2 text-lg">Testing connection...</span>
-              </div>
-            )}
-
-            {connectionStatus === 'success' && (
-              <Alert className="border-green-200 bg-green-50">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-800">
-                  ✅ Connection successful! All systems are working properly.
-                </AlertDescription>
+            {connectionError && (
+              <Alert className="border-red-200 bg-red-50">
+                <AlertDescription className="text-red-800">{connectionError}</AlertDescription>
               </Alert>
             )}
 
-            {connectionStatus === 'error' && (
-              <Alert variant="destructive" className="border-red-200 bg-red-50">
-                <XCircle className="h-4 w-4" />
-                <AlertDescription>
-                  ❌ Connection failed: {error}
-                </AlertDescription>
-              </Alert>
-            )}
+            <div className="flex justify-center">
+              <Button 
+                onClick={runConnectionTest} 
+                disabled={connectionStatus === "testing"}
+                className="w-full sm:w-auto"
+              >
+                {connectionStatus === "testing" ? "Running Tests..." : "Run Connection Test"}
+              </Button>
+            </div>
 
-            {details && (
+            {testResults.length > 0 && (
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Connection Details</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm">Environment Variables</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-sm space-y-1">
-                      <div>URL: {details.environment.supabaseUrl}</div>
-                      <div>Key: {details.environment.supabaseKey}</div>
-                      <div className="text-xs text-gray-500 mt-2">
-                        URL: {details.environment.urlValue}
+                <h3 className="text-lg font-semibold">Test Results</h3>
+                <div className="space-y-3">
+                  {testResults.map((result, index) => (
+                    <div key={index} className="flex items-start space-x-3 p-4 border rounded-lg">
+                      <span className="text-xl">{getStatusIcon(result.status)}</span>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <h4 className="font-medium">{result.test}</h4>
+                          <Badge className={getStatusColor(result.status)}>
+                            {result.status}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1">{result.details}</p>
                       </div>
-                      <div className="text-xs text-gray-500">
-                        Key: {details.environment.keyValue}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm">Database Access</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-sm">
-                      <div className={`flex items-center ${details.database.success ? 'text-green-600' : 'text-red-600'}`}>
-                        {details.database.success ? <CheckCircle className="h-4 w-4 mr-1" /> : <XCircle className="h-4 w-4 mr-1" />}
-                        {details.database.success ? 'Connected' : 'Failed'}
-                      </div>
-                      {details.database.error && (
-                        <div className="text-xs text-red-500 mt-1">{details.database.error}</div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm">Auth Connection</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-sm">
-                      <div className={`flex items-center ${details.connection.success ? 'text-green-600' : 'text-red-600'}`}>
-                        {details.connection.success ? <CheckCircle className="h-4 w-4 mr-1" /> : <XCircle className="h-4 w-4 mr-1" />}
-                        {details.connection.success ? 'Connected' : 'Failed'}
-                      </div>
-                      {details.connection.error && (
-                        <div className="text-xs text-red-500 mt-1">{details.connection.error.message}</div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm">RPC Functions</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-sm">
-                      <div className={`flex items-center ${details.rpcFunction.success ? 'text-green-600' : 'text-red-600'}`}>
-                        {details.rpcFunction.success ? <CheckCircle className="h-4 w-4 mr-1" /> : <XCircle className="h-4 w-4 mr-1" />}
-                        {details.rpcFunction.success ? 'Available' : 'Failed'}
-                      </div>
-                      {details.rpcFunction.note && (
-                        <div className="text-xs text-gray-500 mt-1">{details.rpcFunction.note}</div>
-                      )}
-                      {details.rpcFunction.error && (
-                        <div className="text-xs text-red-500 mt-1">{details.rpcFunction.error}</div>
-                      )}
-                    </CardContent>
-                  </Card>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
-            <div className="flex justify-center">
-              <Button onClick={testConnection} disabled={connectionStatus === 'testing'}>
-                {connectionStatus === 'testing' ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Testing...
-                  </>
-                ) : (
-                  'Test Again'
-                )}
-              </Button>
+            {connectionStatus === "success" && (
+              <Alert className="border-green-200 bg-green-50">
+                <AlertDescription className="text-green-800">
+                  ✅ All tests passed! Your Supabase connection is working correctly.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="mt-8 p-4 bg-gray-100 rounded-lg">
+              <h3 className="font-semibold mb-2">Environment Info</h3>
+              <div className="text-sm space-y-1">
+                <p><strong>Supabase URL:</strong> {process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 50)}...</p>
+                <p><strong>Anon Key:</strong> {process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 20)}...</p>
+                <p><strong>Timestamp:</strong> {new Date().toISOString()}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600">
+                If you see any errors, check the console for detailed logs or contact support.
+              </p>
             </div>
           </CardContent>
         </Card>

@@ -1,8 +1,26 @@
--- Drop all existing triggers and functions
+-- Drop all existing triggers and functions with specific signatures
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
+
+-- Drop all variations of the create_doctor_profile function
 DROP FUNCTION IF EXISTS public.create_doctor_profile_manual(UUID, TEXT, TEXT, TEXT, TEXT, TEXT, INTEGER, TEXT) CASCADE;
 DROP FUNCTION IF EXISTS public.create_doctor_profile(UUID, TEXT, TEXT, TEXT, TEXT, TEXT, INTEGER, TEXT) CASCADE;
+DROP FUNCTION IF EXISTS public.create_doctor_profile(p_user_id UUID, p_email TEXT, p_first_name TEXT, p_last_name TEXT, p_phone TEXT, p_specialty TEXT, p_years_experience INTEGER, p_bio TEXT) CASCADE;
+
+-- Drop any other variations that might exist
+DO $$ 
+DECLARE
+    func_record RECORD;
+BEGIN
+    FOR func_record IN 
+        SELECT proname, oidvectortypes(proargtypes) as argtypes
+        FROM pg_proc 
+        WHERE proname LIKE '%create_doctor_profile%' 
+        AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
+    LOOP
+        EXECUTE 'DROP FUNCTION IF EXISTS public.' || func_record.proname || '(' || func_record.argtypes || ') CASCADE';
+    END LOOP;
+END $$;
 
 -- Create a much simpler and more robust function
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -107,6 +125,7 @@ DROP POLICY IF EXISTS "Users can update own doctor profile" ON public.doctors;
 DROP POLICY IF EXISTS "Allow doctor registration" ON public.doctors;
 DROP POLICY IF EXISTS "Admins can view all doctors" ON public.doctors;
 DROP POLICY IF EXISTS "Admins can update all doctors" ON public.doctors;
+DROP POLICY IF EXISTS "Public can view approved doctors" ON public.doctors;
 
 DROP POLICY IF EXISTS "Users can view own admin profile" ON public.admins;
 DROP POLICY IF EXISTS "Allow admin registration" ON public.admins;
@@ -157,8 +176,8 @@ CREATE POLICY "Allow admin registration" ON public.admins
 CREATE POLICY "Users can view own admin profile" ON public.admins
     FOR SELECT USING (auth.uid() = id);
 
--- Create a simple RPC function for manual profile creation
-CREATE OR REPLACE FUNCTION public.create_doctor_profile(
+-- Create a simple RPC function for manual profile creation with a unique name
+CREATE OR REPLACE FUNCTION public.create_doctor_profile_v2(
     p_user_id UUID,
     p_email TEXT,
     p_first_name TEXT,
@@ -210,7 +229,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Grant necessary permissions
-GRANT EXECUTE ON FUNCTION public.create_doctor_profile TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_doctor_profile_v2 TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.handle_new_user TO anon, authenticated;
 
 -- Ensure the trigger function has the right permissions

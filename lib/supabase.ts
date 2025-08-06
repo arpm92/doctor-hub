@@ -284,7 +284,7 @@ export const doctorSignUp = async (
           await new Promise((resolve) => setTimeout(resolve, 2000))
           
           try {
-            const { data: rpcResult, error: rpcError } = await supabase.rpc('create_doctor_profile', {
+            const { data: rpcResult, error: rpcError } = await supabase.rpc('create_doctor_profile_v2', {
               p_user_id: authData.user.id,
               p_email: authData.user.email!,
               p_first_name: doctorData.firstName.trim(),
@@ -345,7 +345,7 @@ export const doctorSignUp = async (
       console.log("Doctor profile not found, creating manually...")
       
       try {
-        const { data: rpcResult, error: rpcError } = await supabase.rpc('create_doctor_profile', {
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('create_doctor_profile_v2', {
           p_user_id: authData.user.id,
           p_email: authData.user.email!,
           p_first_name: doctorData.firstName.trim(),
