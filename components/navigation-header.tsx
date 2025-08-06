@@ -31,9 +31,14 @@ export function NavigationHeader() {
   }, [])
 
   const handleSignOut = async () => {
-    await signOut()
-    setUser(null)
-    router.push("/")
+    try {
+      await signOut()
+      setUser(null)
+      router.push("/")
+      router.refresh()
+    } catch (error) {
+      console.error("Sign out error:", error)
+    }
   }
 
   return (
@@ -154,7 +159,10 @@ export function NavigationHeader() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2 text-red-600">
+                  <DropdownMenuItem 
+                    onClick={handleSignOut} 
+                    className="flex items-center gap-2 text-red-600 cursor-pointer"
+                  >
                     <LogOut className="h-4 w-4" />
                     Sign Out
                   </DropdownMenuItem>

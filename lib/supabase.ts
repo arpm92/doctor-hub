@@ -185,7 +185,7 @@ export const doctorSignUp = async (
   doctorData: {
     firstName: string
     lastName: string
-    phone?: string
+    phone: string
     specialty: string
     yearsExperience: number
     bio?: string
@@ -194,204 +194,179 @@ export const doctorSignUp = async (
   try {
     console.log("=== DOCTOR SIGNUP ATTEMPT ===")
     console.log("Email:", email)
-    console.log("Doctor data:", doctorData)
+    console.log("Doctor data:", {
+      firstName: doctorData.firstName,
+      lastName: doctorData.lastName,
+      phone: doctorData.phone,
+      specialty: doctorData.specialty,
+      yearsExperience: doctorData.yearsExperience,
+      bio: doctorData.bio ? `${doctorData.bio.substring(0, 50)}...` : "none"
+    })
 
     // Validate required fields
     if (!doctorData.firstName || !doctorData.lastName) {
+      console.error("Missing name fields")
       return { data: null, error: { message: "First name and last name are required" } }
     }
 
+    if (!doctorData.phone || doctorData.phone.trim() === '') {
+      console.error("Missing phone number")
+      return { data: null, error: { message: "Phone number is required" } }
+    }
+
     if (!doctorData.specialty) {
+      console.error("Missing specialty")
       return { data: null, error: { message: "Medical specialty is required" } }
     }
 
-    // Clean phone number - remove if empty
-    const cleanPhone = doctorData.phone?.trim() || undefined
+    if (typeof doctorData.yearsExperience !== 'number' || doctorData.yearsExperience < 0) {
+      console.error("Invalid years of experience:", doctorData.yearsExperience)
+      return { data: null, error: { message: "Valid years of experience is required" } }
+    }
 
-    console.log("Attempting doctor signup with cleaned data...")
+    console.log("All validation passed, proceeding with signup...")
 
     // Get the current origin for redirect URL
     const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000"
 
-    const signupData = {
-      email,
+    // First, try to create the user without metadata to avoid trigger issues
+    console.log("Creating user account first...")
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: email.trim(),
       password,
       options: {
         emailRedirectTo: `${origin}/auth/callback?type=doctor`,
-        data: {
-          user_type: "doctor",
-          first_name: doctorData.firstName.trim(),
-          last_name: doctorData.lastName.trim(),
-          phone: cleanPhone || null,
-          specialty: doctorData.specialty.trim(),
-          years_experience: doctorData.yearsExperience,
-          bio: doctorData.bio?.trim() || null,
-        },
       },
-    }
+    })
 
-    console.log("Doctor signup payload:", signupData)
-
-    const { data, error } = await supabase.auth.signUp(signupData)
-
-    console.log("=== DOCTOR SIGNUP RESPONSE ===")
-    console.log("Success:", !!data.user)
-    console.log("User ID:", data.user?.id)
-    console.log("Email confirmed:", data.user?.email_confirmed_at ? "Yes" : "No")
-    console.log("Error:", error)
-
-    if (error) {
-      console.error("Supabase auth error:", error.message)
+    console.log("=== AUTH SIGNUP RESPONSE ===")
+    console.log("Success:", !!authData.user)
+    console.log("User ID:", authData.user?.id)
+    console.log("Email confirmed:", authData.user?.email_confirmed_at ? "Yes" : "No")
+    console.log("Session:", !!authData.session)
+    
+    if (authError) {
+      console.error("=== SUPABASE AUTH ERROR ===")
+      console.error("Error code:", authError.status)
+      console.error("Error message:", authError.message)
+      console.error("Full error:", authError)
 
       // Handle specific error cases
-      if (error.message.includes("already registered") || error.message.includes("already exists")) {
+      if (authError.message.includes("already registered") || authError.message.includes("already exists")) {
         return { data: null, error: { message: "An account with this email already exists. Please sign in instead." } }
       }
 
-      if (error.message.includes("Password")) {
+      if (authError.message.includes("Password")) {
         return { data: null, error: { message: "Password does not meet security requirements." } }
       }
 
-      if (error.message.includes("Database error saving new user")) {
-        // This is the trigger error - let's handle it gracefully
-        console.log("Database trigger error detected, but user may have been created")
+      if (authError.message.includes("Invalid email")) {
+        return { data: null, error: { message: "Please enter a valid email address." } }
+      }
 
-        if (data.user) {
-          console.log("User was created despite trigger error, attempting manual doctor creation...")
+      // Return the original error message for debugging
+      return { data: null, error: { message: `Registration failed: ${authError.message}` } }
+    }
 
-          // Wait a moment for any async operations
-          await new Promise((resolve) => setTimeout(resolve, 2000))
+    if (!authData.user) {
+      console.error("No user returned from signup")
+      return { data: null, error: { message: "Failed to create user account. Please try again." } }
+    }
 
-          try {
-            // Try to create the doctor profile manually using the RPC function
-            const { data: doctorProfile, error: rpcError } = await supabase.rpc("create_doctor_profile", {
-              user_id: data.user.id,
-              user_email: data.user.email!,
-              first_name: doctorData.firstName.trim(),
-              last_name: doctorData.lastName.trim(),
-              phone: cleanPhone || null,
-              specialty: doctorData.specialty.trim(),
-              years_experience: doctorData.yearsExperience,
-              bio: doctorData.bio?.trim() || null,
-            })
+    console.log("User account created successfully, now creating doctor profile...")
 
-            if (rpcError) {
-              console.error("RPC function failed:", rpcError)
-              // Try direct insert as fallback
-              const { error: insertError } = await supabase.from("doctors").upsert(
-                {
-                  id: data.user.id,
-                  email: data.user.email!,
-                  first_name: doctorData.firstName.trim(),
-                  last_name: doctorData.lastName.trim(),
-                  phone: cleanPhone || null,
-                  specialty: doctorData.specialty.trim(),
-                  years_experience: doctorData.yearsExperience,
-                  bio: doctorData.bio?.trim() || null,
-                  status: "pending",
-                  tier: "basic",
-                },
-                {
-                  onConflict: "id",
-                },
-              )
+    // Now create the doctor profile manually using RPC function
+    try {
+      const { data: doctorProfile, error: profileError } = await supabase.rpc('create_doctor_profile', {
+        p_user_id: authData.user.id,
+        p_email: authData.user.email!,
+        p_first_name: doctorData.firstName.trim(),
+        p_last_name: doctorData.lastName.trim(),
+        p_phone: doctorData.phone.trim(),
+        p_specialty: doctorData.specialty.trim(),
+        p_years_experience: doctorData.yearsExperience,
+        p_bio: doctorData.bio?.trim() || null,
+      })
 
-              if (insertError) {
-                console.error("Direct insert also failed:", insertError)
-                return {
-                  data: null,
-                  error: {
-                    message: "Account created but profile setup failed. Please contact support or try signing in.",
-                  },
-                }
-              } else {
-                console.log("Direct insert successful!")
-              }
-            } else {
-              console.log("RPC function successful!")
-            }
+      if (profileError) {
+        console.error("RPC profile creation failed:", profileError)
+        
+        // Try direct insert as fallback
+        console.log("Trying direct insert as fallback...")
+        const { data: insertData, error: insertError } = await supabase
+          .from("doctors")
+          .insert({
+            id: authData.user.id,
+            email: authData.user.email!,
+            first_name: doctorData.firstName.trim(),
+            last_name: doctorData.lastName.trim(),
+            phone: doctorData.phone.trim(),
+            specialty: doctorData.specialty.trim(),
+            years_experience: doctorData.yearsExperience,
+            bio: doctorData.bio?.trim() || null,
+            status: "pending",
+            tier: "basic",
+          })
+          .select()
+          .single()
 
-            // Registration was successful despite the trigger error
-            return { data, error: null }
-          } catch (manualErr) {
-            console.error("Manual doctor creation failed:", manualErr)
-            return {
-              data: null,
-              error: {
-                message: "Account created but profile setup failed. Please contact support or try signing in.",
-              },
-            }
-          }
-        } else {
+        if (insertError) {
+          console.error("Direct insert also failed:", insertError)
           return {
             data: null,
-            error: { message: "Failed to create account. Please try again." },
+            error: {
+              message: "Account created but profile setup failed. Please contact support.",
+            },
           }
         }
-      }
 
-      return { data: null, error }
-    }
-
-    if (data.user) {
-      console.log("Doctor registration successful!")
-
-      // Wait a moment for the trigger to complete
-      await new Promise((resolve) => setTimeout(resolve, 3000))
-
-      // Verify doctor record was created
-      console.log("Verifying doctor record...")
-      const { data: doctorRecord, error: doctorError } = await supabase
-        .from("doctors")
-        .select("*")
-        .eq("id", data.user.id)
-        .maybeSingle()
-
-      if (doctorError || !doctorRecord) {
-        console.log("Doctor record not found, creating manually...")
-
-        try {
-          const { error: createError } = await supabase.from("doctors").upsert(
-            {
-              id: data.user.id,
-              email: data.user.email!,
-              first_name: doctorData.firstName.trim(),
-              last_name: doctorData.lastName.trim(),
-              phone: cleanPhone || null,
-              specialty: doctorData.specialty.trim(),
-              years_experience: doctorData.yearsExperience,
-              bio: doctorData.bio?.trim() || null,
-              status: "pending",
-              tier: "basic",
-            },
-            {
-              onConflict: "id",
-            },
-          )
-
-          if (createError) {
-            console.error("Manual doctor creation failed:", createError)
-          } else {
-            console.log("Manual doctor creation successful!")
-          }
-        } catch (createErr) {
-          console.error("Manual creation exception:", createErr)
-        }
+        console.log("Direct insert successful:", insertData)
       } else {
-        console.log("Doctor record verified:", doctorRecord.id)
+        console.log("RPC profile creation successful:", doctorProfile)
+      }
+
+    } catch (profileErr) {
+      console.error("Profile creation exception:", profileErr)
+      return {
+        data: null,
+        error: {
+          message: "Account created but profile setup failed. Please contact support.",
+        },
       }
     }
 
+    // Verify the doctor profile was created
+    console.log("Verifying doctor profile...")
+    const { data: verifyDoctor, error: verifyError } = await supabase
+      .from("doctors")
+      .select("*")
+      .eq("id", authData.user.id)
+      .single()
+
+    if (verifyError || !verifyDoctor) {
+      console.error("Doctor profile verification failed:", verifyError)
+      return {
+        data: null,
+        error: {
+          message: "Account created but profile verification failed. Please contact support.",
+        },
+      }
+    }
+
+    console.log("Doctor profile verified successfully:", verifyDoctor.id)
     console.log("=== DOCTOR SIGNUP COMPLETE ===")
-    return { data, error: null }
+    return { data: authData, error: null }
+
   } catch (err) {
     console.error("=== DOCTOR SIGNUP EXCEPTION ===")
-    console.error("Error:", err)
+    console.error("Error type:", typeof err)
+    console.error("Error message:", err instanceof Error ? err.message : "Unknown error")
+    console.error("Full error:", err)
 
     return {
       data: null,
       error: {
-        message: `Doctor registration failed: ${err instanceof Error ? err.message : "Unknown error"}. Please try again.`,
+        message: `Registration failed: ${err instanceof Error ? err.message : "Unknown error"}. Please try again.`,
       },
     }
   }

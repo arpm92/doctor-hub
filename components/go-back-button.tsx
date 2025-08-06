@@ -10,7 +10,7 @@ interface GoBackButtonProps {
   children?: React.ReactNode
 }
 
-export function GoBackButton({ fallbackUrl = "/", className, children }: GoBackButtonProps) {
+export function GoBackButton({ fallbackUrl = "/", className = "", children }: GoBackButtonProps) {
   const router = useRouter()
 
   const handleGoBack = () => {
@@ -23,9 +23,9 @@ export function GoBackButton({ fallbackUrl = "/", className, children }: GoBackB
 
   return (
     <Button
-      variant="ghost"
+      variant="outline"
       onClick={handleGoBack}
-      className={`flex items-center gap-2 text-gray-600 hover:text-gray-900 p-0 h-auto font-normal ${className}`}
+      className={`flex items-center gap-2 bg-transparent border-emerald-200 text-emerald-700 hover:bg-emerald-50 ${className}`}
     >
       <ArrowLeft className="h-4 w-4" />
       {children || "Go Back"}
