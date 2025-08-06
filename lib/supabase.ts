@@ -834,6 +834,22 @@ export const deleteDoctorLocation = async (locationId: string) => {
   }
 }
 
+// Get single doctor location
+export const getDoctorLocation = async (locationId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from("doctor_locations")
+      .select("*")
+      .eq("id", locationId)
+      .single()
+
+    return { location: data, error }
+  } catch (error) {
+    console.error("Error fetching doctor location:", error)
+    return { location: null, error }
+  }
+}
+
 // Doctor article functions
 export const getDoctorArticles = async (doctorId: string) => {
   try {
@@ -908,6 +924,22 @@ export const deleteDoctorArticle = async (articleId: string) => {
   }
 }
 
+// Get single doctor article
+export const getDoctorArticle = async (articleId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from("doctor_articles")
+      .select("*")
+      .eq("id", articleId)
+      .single()
+
+    return { article: data, error }
+  } catch (error) {
+    console.error("Error fetching doctor article:", error)
+    return { article: null, error }
+  }
+}
+
 // File upload function
 export const uploadFile = async (file: File, bucket: string, path: string) => {
   try {
@@ -957,6 +989,23 @@ export const getPublicDoctors = async () => {
   } catch (err) {
     console.error("Unexpected error getting public doctors:", err)
     return { doctors: null, error: { message: "Failed to get public doctors" } }
+  }
+}
+
+// Update doctor status and tier (for admin)
+export const updateDoctorStatusAndTier = async (doctorId: string, updates: { status?: string; tier?: string }) => {
+  try {
+    const { data, error } = await supabase
+      .from("doctors")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", doctorId)
+      .select()
+      .single()
+
+    return { data, error }
+  } catch (error) {
+    console.error("Error updating doctor status/tier:", error)
+    return { data: null, error }
   }
 }
 

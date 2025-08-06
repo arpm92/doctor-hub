@@ -8,21 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  User,
-  MapPin,
-  FileText,
-  Camera,
-  Edit,
-  Plus,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  XCircle,
-  Loader2,
-  LogOut,
-  Settings,
-} from "lucide-react"
+import { User, MapPin, FileText, Camera, Edit, Plus, Clock, CheckCircle, AlertCircle, XCircle, Loader2, LogOut, Settings } from 'lucide-react'
 import {
   getCurrentUser,
   getCurrentDoctor,
@@ -33,6 +19,7 @@ import {
   type DoctorLocation,
   type DoctorArticle,
 } from "@/lib/supabase"
+import { GoBackButton } from "@/components/go-back-button"
 
 export default function DoctorDashboard() {
   const router = useRouter()
@@ -203,6 +190,7 @@ export default function DoctorDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center gap-4">
+              <GoBackButton fallbackUrl="/" />
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                 {doctor.profile_image ? (
                   <img

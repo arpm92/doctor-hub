@@ -1,6 +1,7 @@
 "use client"
 
 import { Badge } from "@/components/ui/badge"
+import { GoBackButton } from "@/components/go-back-button"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -17,7 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { FileText, Plus, Edit, Trash2, Loader2 } from "lucide-react"
+import { FileText, Plus, Edit, Trash2, Loader2 } from 'lucide-react'
 import {
   getCurrentUser,
   getCurrentDoctor,
@@ -157,7 +158,10 @@ export default function DoctorArticlesPage() {
         <Card>
           <CardHeader className="px-6 py-4">
             <div className="flex justify-between items-center">
-              <CardTitle>Manage Articles</CardTitle>
+              <div className="flex items-center gap-4">
+                <GoBackButton fallbackUrl="/doctor/dashboard" />
+                <CardTitle>Manage Articles</CardTitle>
+              </div>
               <Button asChild>
                 <Link href="/doctor/articles/new">
                   <Plus className="h-4 w-4 mr-2" />

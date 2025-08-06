@@ -38,6 +38,8 @@ async function getDatabaseDoctors(): Promise<DatabaseDoctor[]> {
       return []
     }
 
+    console.log("Fetched doctors:", doctors?.length || 0)
+
     return doctors || []
   } catch (error) {
     console.error("Unexpected error fetching doctors:", error)

@@ -34,15 +34,22 @@ async function getDatabaseDoctorsWithLocations(): Promise<any[]> {
       return []
     }
 
+    console.log("Raw doctors data:", doctors?.length || 0)
+
     // Convert to map format and filter only doctors with valid locations
     const mappedDoctors = (doctors || [])
       .filter(doctor => doctor.doctor_locations && doctor.doctor_locations.length > 0)
       .map(doctor => {
         const primaryLocation = doctor.doctor_locations?.find(loc => loc.is_primary) || doctor.doctor_locations?.[0]
         
-        // Only include if we have coordinates or can generate them
-        if (!primaryLocation || (!primaryLocation.latitude && !primaryLocation.longitude)) {
+        if (!primaryLocation) {
           return null
+        }
+
+        // Generate coordinates based on city/state if not available
+        const coordinates = {
+          lat: primaryLocation.latitude || getDefaultLatForCity(primaryLocation.city, primaryLocation.state),
+          lng: primaryLocation.longitude || getDefaultLngForCity(primaryLocation.city, primaryLocation.state)
         }
 
         return {
@@ -57,11 +64,8 @@ async function getDatabaseDoctorsWithLocations(): Promise<any[]> {
             address: primaryLocation.address || "",
             city: primaryLocation.city || "",
             state: primaryLocation.state || "",
-            country: primaryLocation.country || "USA",
-            coordinates: {
-              lat: primaryLocation.latitude || getDefaultLatForCity(primaryLocation.city, primaryLocation.state),
-              lng: primaryLocation.longitude || getDefaultLngForCity(primaryLocation.city, primaryLocation.state)
-            }
+            country: primaryLocation.country || "Venezuela",
+            coordinates
           },
           tier: doctor.tier as "basic" | "medium" | "premium",
           slug: doctor.slug || `${doctor.first_name.toLowerCase()}-${doctor.last_name.toLowerCase()}`,
@@ -80,6 +84,7 @@ async function getDatabaseDoctorsWithLocations(): Promise<any[]> {
       })
       .filter(Boolean) // Remove null entries
 
+    console.log("Mapped doctors for map:", mappedDoctors.length)
     return mappedDoctors
   } catch (error) {
     console.error("Unexpected error fetching doctors:", error)
@@ -87,9 +92,21 @@ async function getDatabaseDoctorsWithLocations(): Promise<any[]> {
   }
 }
 
-// Helper function to get default coordinates for major cities
+// Add Venezuelan cities to the coordinate helper functions
 function getDefaultLatForCity(city: string, state: string): number {
   const cityCoords: Record<string, { lat: number, lng: number }> = {
+    // Venezuelan cities
+    "caracas": { lat: 10.4806, lng: -66.9036 },
+    "maracaibo": { lat: 10.6666, lng: -71.6333 },
+    "valencia": { lat: 10.1621, lng: -68.0077 },
+    "barquisimeto": { lat: 10.0647, lng: -69.3570 },
+    "maracay": { lat: 10.2353, lng: -67.5911 },
+    "ciudad guayana": { lat: 8.3114, lng: -62.7186 },
+    "san cristóbal": { lat: 7.7669, lng: -72.2252 },
+    "maturín": { lat: 9.7469, lng: -63.1764 },
+    "ciudad bolívar": { lat: 8.1292, lng: -63.5497 },
+    "cumana": { lat: 10.4630, lng: -64.1664 },
+    // US cities (existing)
     "new york": { lat: 40.7128, lng: -74.0060 },
     "los angeles": { lat: 34.0522, lng: -118.2437 },
     "chicago": { lat: 41.8781, lng: -87.6298 },
@@ -142,11 +159,23 @@ function getDefaultLatForCity(city: string, state: string): number {
   }
 
   const key = city.toLowerCase()
-  return cityCoords[key]?.lat || 39.8283 // Default to center of US
+  return cityCoords[key]?.lat || 10.4806 // Default to Caracas, Venezuela
 }
 
 function getDefaultLngForCity(city: string, state: string): number {
   const cityCoords: Record<string, { lat: number, lng: number }> = {
+    // Venezuelan cities
+    "caracas": { lat: 10.4806, lng: -66.9036 },
+    "maracaibo": { lat: 10.6666, lng: -71.6333 },
+    "valencia": { lat: 10.1621, lng: -68.0077 },
+    "barquisimeto": { lat: 10.0647, lng: -69.3570 },
+    "maracay": { lat: 10.2353, lng: -67.5911 },
+    "ciudad guayana": { lat: 8.3114, lng: -62.7186 },
+    "san cristóbal": { lat: 7.7669, lng: -72.2252 },
+    "maturín": { lat: 9.7469, lng: -63.1764 },
+    "ciudad bolívar": { lat: 8.1292, lng: -63.5497 },
+    "cumana": { lat: 10.4630, lng: -64.1664 },
+    // US cities (existing)
     "new york": { lat: 40.7128, lng: -74.0060 },
     "los angeles": { lat: 34.0522, lng: -118.2437 },
     "chicago": { lat: 41.8781, lng: -87.6298 },
@@ -199,7 +228,7 @@ function getDefaultLngForCity(city: string, state: string): number {
   }
 
   const key = city.toLowerCase()
-  return cityCoords[key]?.lng || -98.5795 // Default to center of US
+  return cityCoords[key]?.lng || -66.9036 // Default to Caracas, Venezuela
 }
 
 export async function DatabaseMapView() {

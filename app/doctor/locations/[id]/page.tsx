@@ -1,9 +1,8 @@
 "use client"
 
 import { FormDescription } from "@/components/ui/form"
-
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -14,7 +13,15 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { toast } from "@/components/ui/use-toast"
 import { GoBackButton } from "@/components/go-back-button"
-import { getCurrentUser, getCurrentDoctor, createDoctorLocation, signOut, type Doctor } from "@/lib/supabase"
+import { 
+  getCurrentUser, 
+  getCurrentDoctor, 
+  getDoctorLocation, 
+  updateDoctorLocation, 
+  signOut, 
+  type Doctor, 
+  type DoctorLocation 
+} from "@/lib/supabase"
 
 const locationSchema = z.object({
   name: z.string().min(3, { message: "Name must be at least 3 characters." }),
@@ -22,22 +29,26 @@ const locationSchema = z.object({
   city: z.string().min(3, { message: "City must be at least 3 characters." }),
   state: z.string().min(2, { message: "State must be at least 2 characters." }),
   postal_code: z.string().optional(),
-  country: z.string().min(2, { message: "Country must be at least 2 characters." }).default("Venezuela"),
+  country: z.string().min(2, { message: "Country must be at least 2 characters." }),
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
   website: z.string().url().optional().or(z.literal("")),
   is_primary: z.boolean().default(false),
 })
 
-export default function DoctorLocationNewPage() {
+export default function DoctorLocationEditPage() {
   const router = useRouter()
+  const params = useParams()
+  const locationId = params.id as string
+  
   const [doctor, setDoctor] = useState<Doctor | null>(null)
+  const [location, setLocation] = useState<DoctorLocation | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isUpdating, setIsUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const loadDoctorData = async () => {
+    const loadData = async () => {
       try {
         setIsLoading(true)
         setError(null)
@@ -64,16 +75,39 @@ export default function DoctorLocationNewPage() {
         }
 
         setDoctor(doctorData)
+
+        // Get location data
+        const { location: locationData, error: locationError } = await getDoctorLocation(locationId)
+
+        if (locationError) {
+          setError("Failed to load location: " + locationError.message)
+          return
+        }
+
+        if (!locationData) {
+          setError("Location not found")
+          return
+        }
+
+        // Verify the location belongs to this doctor
+        if (locationData.doctor_id !== doctorData.id) {
+          setError("You don't have permission to edit this location")
+          return
+        }
+
+        setLocation(locationData)
       } catch (err) {
-        console.error("Error loading doctor data:", err)
+        console.error("Error loading data:", err)
         setError("An unexpected error occurred")
       } finally {
         setIsLoading(false)
       }
     }
 
-    loadDoctorData()
-  }, [router])
+    if (locationId) {
+      loadData()
+    }
+  }, [router, locationId])
 
   const handleSignOut = async () => {
     try {
@@ -100,12 +134,30 @@ export default function DoctorLocationNewPage() {
     },
   })
 
+  // Update form when location data is loaded
+  useEffect(() => {
+    if (location) {
+      form.reset({
+        name: location.name || "",
+        address: location.address || "",
+        city: location.city || "",
+        state: location.state || "",
+        postal_code: location.postal_code || "",
+        country: location.country || "Venezuela",
+        phone: location.phone || "",
+        email: location.email || "",
+        website: location.website || "",
+        is_primary: location.is_primary || false,
+      })
+    }
+  }, [location, form])
+
   const onSubmit = async (values: z.infer<typeof locationSchema>) => {
     setIsUpdating(true)
     setError(null)
 
-    if (!doctor) {
-      setError("Doctor profile not loaded")
+    if (!doctor || !location) {
+      setError("Data not loaded")
       return
     }
 
@@ -119,25 +171,20 @@ export default function DoctorLocationNewPage() {
         phone: values.phone || null,
       }
 
-      const newLocation = {
-        doctor_id: doctor.id,
-        ...cleanedValues,
-      }
-
-      const { data, error } = await createDoctorLocation(newLocation)
+      const { data, error } = await updateDoctorLocation(location.id, cleanedValues)
 
       if (error) {
-        setError("Failed to create location: " + error.message)
+        setError("Failed to update location: " + error.message)
         return
       }
 
       toast({
-        title: "Location created successfully!",
-        description: "Your new location has been saved.",
+        title: "Location updated successfully!",
+        description: "Your changes have been saved.",
       })
       router.push("/doctor/locations")
     } catch (err) {
-      console.error("Error creating location:", err)
+      console.error("Error updating location:", err)
       setError("An unexpected error occurred")
     } finally {
       setIsUpdating(false)
@@ -145,24 +192,30 @@ export default function DoctorLocationNewPage() {
   }
 
   if (isLoading) {
-    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading your profile...</div>
+    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading location...</div>
   }
 
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        Error: {error}
-        <Button onClick={() => window.location.reload()}>Try Again</Button>
-        <Button onClick={handleSignOut}>Sign Out</Button>
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Error: {error}</p>
+          <div className="space-x-2">
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
+            <Button onClick={handleSignOut}>Sign Out</Button>
+          </div>
+        </div>
       </div>
     )
   }
 
-  if (!doctor) {
+  if (!doctor || !location) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        Doctor profile not found.
-        <Button onClick={handleSignOut}>Sign Out</Button>
+        <div className="text-center">
+          <p className="mb-4">Location not found.</p>
+          <Button onClick={handleSignOut}>Sign Out</Button>
+        </div>
       </div>
     )
   }
@@ -175,7 +228,7 @@ export default function DoctorLocationNewPage() {
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-4">
                 <GoBackButton fallbackUrl="/doctor/locations" />
-                <CardTitle>Add New Location</CardTitle>
+                <CardTitle>Edit Location</CardTitle>
               </div>
             </div>
           </CardHeader>
@@ -316,8 +369,8 @@ export default function DoctorLocationNewPage() {
                   )}
                 />
 
-                <Button type="submit" disabled={form.formState.isSubmitting} className="w-full">
-                  {form.formState.isSubmitting ? "Creating..." : "Create Location"}
+                <Button type="submit" disabled={isUpdating} className="w-full">
+                  {isUpdating ? "Updating..." : "Update Location"}
                 </Button>
               </form>
             </Form>

@@ -1,60 +1,71 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { GoBackButton } from "@/components/go-back-button"
-import { BarChart3, Users, TrendingUp, Clock, Star } from 'lucide-react'
-import { getAdminStats, getAllDoctors } from "@/lib/supabase"
-import type { AdminStats, Doctor } from "@/lib/supabase"
+import { BarChart3, Users, TrendingUp, Calendar, AlertCircle, LogOut, Loader2 } from 'lucide-react'
+import { getCurrentAdmin, getAdminStats, signOut, type AdminStats } from "@/lib/supabase"
 
 export default function AdminAnalyticsPage() {
+  const router = useRouter()
+  const [admin, setAdmin] = useState<any>(null)
   const [stats, setStats] = useState<AdminStats | null>(null)
-  const [doctors, setDoctors] = useState<Doctor[]>([])
-  const [loading, setLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchData = async () => {
+    const loadData = async () => {
       try {
-        setLoading(true)
+        setIsLoading(true)
+        setError(null)
 
-        const [statsResult, doctorsResult] = await Promise.all([getAdminStats(), getAllDoctors()])
+        // Check if user is authenticated as admin
+        const { admin: adminData, error: adminError } = await getCurrentAdmin()
 
-        if (statsResult.error) {
-          throw new Error(statsResult.error.message)
+        if (adminError || !adminData) {
+          router.push("/admin/login")
+          return
         }
-        if (doctorsResult.error) {
-          throw new Error(doctorsResult.error.message)
+
+        setAdmin(adminData)
+
+        // Load admin stats
+        const { stats: statsData, error: statsError } = await getAdminStats()
+
+        if (statsError) {
+          setError("Failed to load analytics data")
+          return
         }
 
-        setStats(statsResult.stats)
-        setDoctors(doctorsResult.doctors || [])
+        setStats(statsData)
       } catch (err) {
-        console.error("Error fetching analytics data:", err)
-        setError(err instanceof Error ? err.message : "Failed to load analytics")
+        console.error("Error loading data:", err)
+        setError("An unexpected error occurred")
       } finally {
-        setLoading(false)
+        setIsLoading(false)
       }
     }
 
-    fetchData()
-  }, [])
+    loadData()
+  }, [router])
 
-  if (loading) {
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      router.push("/admin/login")
+    } catch (err) {
+      console.error("Sign out error:", err)
+    }
+  }
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-gray-200 rounded w-64"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
-              ))}
-            </div>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-green-600" />
+          <p className="text-gray-600">Loading analytics...</p>
         </div>
       </div>
     )
@@ -62,54 +73,73 @@ export default function AdminAnalyticsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <Card className="border-red-200">
-            <CardContent className="p-6">
-              <div className="text-center">
-                <div className="text-red-600 mb-2">Error loading analytics</div>
-                <p className="text-gray-600">{error}</p>
-                <Button onClick={() => window.location.reload()} className="mt-4">
-                  Retry
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Analytics</h2>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <div className="space-y-2">
+              <Button onClick={() => window.location.reload()} className="w-full">
+                Try Again
+              </Button>
+              <Button variant="outline" onClick={handleSignOut} className="w-full bg-transparent">
+                Sign Out
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
-  const tierCounts = doctors.reduce(
-    (acc, doctor) => {
-      const tier = doctor.tier || "basic"
-      acc[tier] = (acc[tier] || 0) + 1
-      return acc
-    },
-    {} as Record<string, number>,
-  )
-
-  const recentDoctors = doctors
-    .filter((d) => d.status === "approved")
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 5)
+  if (!admin) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+            <p className="text-gray-600 mb-4">
+              You don't have permission to access this page.
+            </p>
+            <Button onClick={handleSignOut} className="w-full">
+              Sign Out
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <GoBackButton fallbackUrl="/admin/dashboard" />
-            <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div className="flex items-center gap-4">
+              <GoBackButton fallbackUrl="/admin/dashboard" />
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <BarChart3 className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Analytics & Reports</h1>
+                <p className="text-gray-600">Platform insights and performance metrics</p>
+              </div>
+            </div>
+            <Button variant="outline" onClick={handleSignOut}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
           </div>
-          <Button variant="outline">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Export Report
-          </Button>
         </div>
+      </div>
 
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Overview Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Doctors</CardTitle>
@@ -117,206 +147,170 @@ export default function AdminAnalyticsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats?.total_doctors || 0}</div>
-              <p className="text-xs text-muted-foreground">+{stats?.recent_registrations || 0} this month</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Approved</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats?.approved_doctors || 0}</div>
               <p className="text-xs text-muted-foreground">
-                {stats?.total_doctors ? Math.round((stats.approved_doctors / stats.total_doctors) * 100) : 0}% of total
+                All registered doctors
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
-              <Clock className="h-4 w-4 text-yellow-600" />
+              <CardTitle className="text-sm font-medium">Active Doctors</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{stats?.pending_doctors || 0}</div>
-              <p className="text-xs text-muted-foreground">Awaiting approval</p>
+              <div className="text-2xl font-bold text-green-600">{stats?.approved_doctors || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                Approved and active
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Premium Tier</CardTitle>
-              <Star className="h-4 w-4 text-purple-600" />
+              <CardTitle className="text-sm font-medium">Pending Reviews</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-600">{tierCounts.premium || 0}</div>
-              <p className="text-xs text-muted-foreground">Premium subscriptions</p>
+              <div className="text-2xl font-bold text-yellow-600">{stats?.pending_doctors || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                Awaiting approval
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Recent Signups</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats?.recent_registrations || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                Last 30 days
+              </p>
             </CardContent>
           </Card>
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="specialties">Specialties</TabsTrigger>
-            <TabsTrigger value="tiers">Subscription Tiers</TabsTrigger>
-            <TabsTrigger value="recent">Recent Activity</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Doctor Status Distribution</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Approved</span>
-                    <Badge variant="secondary" className="bg-green-100 text-green-800">
-                      {stats?.approved_doctors || 0}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Pending</span>
-                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                      {stats?.pending_doctors || 0}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Rejected</span>
-                    <Badge variant="secondary" className="bg-red-100 text-red-800">
-                      {stats?.rejected_doctors || 0}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Suspended</span>
-                    <Badge variant="secondary" className="bg-gray-100 text-gray-800">
-                      {stats?.suspended_doctors || 0}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Subscription Tiers</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Basic</span>
-                    <Badge variant="outline">{tierCounts.basic || 0}</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Medium</span>
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                      {tierCounts.medium || 0}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Premium</span>
-                    <Badge variant="secondary" className="bg-purple-100 text-purple-800">
-                      {tierCounts.premium || 0}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="specialties" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Medical Specialties</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {stats?.specialties &&
-                    Object.entries(stats.specialties).map(([specialty, count]) => (
-                      <div key={specialty} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <span className="text-sm font-medium capitalize">{specialty}</span>
-                        <Badge variant="secondary">{count}</Badge>
-                      </div>
-                    ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="tiers" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Basic Tier</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold mb-2">{tierCounts.basic || 0}</div>
-                  <p className="text-sm text-gray-600">Standard listing features</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg text-blue-600">Medium Tier</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold mb-2 text-blue-600">{tierCounts.medium || 0}</div>
-                  <p className="text-sm text-gray-600">Enhanced visibility</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg text-purple-600">Premium Tier</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold mb-2 text-purple-600">{tierCounts.premium || 0}</div>
-                  <p className="text-sm text-gray-600">Priority placement</p>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="recent" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recently Approved Doctors</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {recentDoctors.map((doctor) => (
-                    <div key={doctor.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <div className="font-medium">
-                          Dr. {doctor.first_name} {doctor.last_name}
-                        </div>
-                        <div className="text-sm text-gray-600">{doctor.specialty}</div>
-                      </div>
-                      <div className="text-right">
-                        <Badge
-                          variant="secondary"
-                          className={
-                            doctor.tier === "premium"
-                              ? "bg-purple-100 text-purple-800"
-                              : doctor.tier === "medium"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-gray-100 text-gray-800"
-                          }
-                        >
-                          {doctor.tier || "basic"}
-                        </Badge>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {new Date(doctor.created_at).toLocaleDateString()}
-                        </div>
-                      </div>
+        {/* Specialties Breakdown */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Doctors by Specialty</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {stats?.specialties && Object.keys(stats.specialties).length > 0 ? (
+              <div className="space-y-4">
+                {Object.entries(stats.specialties).map(([specialty, count]) => (
+                  <div key={specialty} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <span className="font-medium">{specialty}</span>
                     </div>
-                  ))}
+                    <div className="flex items-center gap-3">
+                      <div className="w-32 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-green-500 h-2 rounded-full" 
+                          style={{ 
+                            width: `${Math.min((count / (stats.total_doctors || 1)) * 100, 100)}%` 
+                          }}
+                        ></div>
+                      </div>
+                      <span className="text-sm font-medium w-8 text-right">{count}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No specialty data available</h3>
+                <p className="text-gray-600">
+                  Specialty breakdown will appear once doctors register.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Status Breakdown */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Doctor Status Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span>Approved</span>
+                  </div>
+                  <span className="font-medium">{stats?.approved_doctors || 0}</span>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    <span>Pending</span>
+                  </div>
+                  <span className="font-medium">{stats?.pending_doctors || 0}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <span>Rejected</span>
+                  </div>
+                  <span className="font-medium">{stats?.rejected_doctors || 0}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                    <span>Suspended</span>
+                  </div>
+                  <span className="font-medium">{stats?.suspended_doctors || 0}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Platform Health</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span>Approval Rate</span>
+                  <span className="font-medium text-green-600">
+                    {stats?.total_doctors && stats.total_doctors > 0 
+                      ? Math.round(((stats.approved_doctors || 0) / stats.total_doctors) * 100)
+                      : 0}%
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Pending Review Rate</span>
+                  <span className="font-medium text-yellow-600">
+                    {stats?.total_doctors && stats.total_doctors > 0 
+                      ? Math.round(((stats.pending_doctors || 0) / stats.total_doctors) * 100)
+                      : 0}%
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Active Specialties</span>
+                  <span className="font-medium">
+                    {stats?.specialties ? Object.keys(stats.specialties).length : 0}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Recent Growth</span>
+                  <span className="font-medium text-blue-600">
+                    {stats?.recent_registrations || 0} new doctors
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )

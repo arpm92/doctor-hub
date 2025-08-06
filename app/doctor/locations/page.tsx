@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { MapPin, Plus, Edit, Trash2, Loader2 } from "lucide-react"
+import { MapPin, Plus, Edit, Trash2, Loader2 } from 'lucide-react'
 import {
   getCurrentUser,
   getCurrentDoctor,
@@ -25,6 +25,7 @@ import {
   type Doctor,
   type DoctorLocation,
 } from "@/lib/supabase"
+import { GoBackButton } from "@/components/go-back-button"
 
 export default function DoctorLocationsPage() {
   const router = useRouter()
@@ -142,7 +143,10 @@ export default function DoctorLocationsPage() {
         <Card>
           <CardHeader className="px-6 py-4">
             <div className="flex justify-between items-center">
-              <CardTitle>Manage Locations</CardTitle>
+              <div className="flex items-center gap-4">
+                <GoBackButton fallbackUrl="/doctor/dashboard" />
+                <CardTitle>Manage Locations</CardTitle>
+              </div>
               <Button asChild>
                 <Link href="/doctor/locations/new">
                   <Plus className="h-4 w-4 mr-2" />

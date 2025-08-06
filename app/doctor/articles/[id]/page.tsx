@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -12,8 +12,16 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form"
 import { toast } from "@/components/ui/use-toast"
-import { getCurrentUser, getCurrentDoctor, createDoctorArticle, signOut, type Doctor } from "@/lib/supabase"
 import { GoBackButton } from "@/components/go-back-button"
+import { 
+  getCurrentUser, 
+  getCurrentDoctor, 
+  getDoctorArticle, 
+  updateDoctorArticle, 
+  signOut, 
+  type Doctor, 
+  type DoctorArticle 
+} from "@/lib/supabase"
 
 const articleSchema = z.object({
   title: z.string().min(5, { message: "Title must be at least 5 characters." }),
@@ -25,15 +33,19 @@ const articleSchema = z.object({
   status: z.enum(["draft", "published", "archived"]).default("draft"),
 })
 
-export default function DoctorArticleNewPage() {
+export default function DoctorArticleEditPage() {
   const router = useRouter()
+  const params = useParams()
+  const articleId = params.id as string
+  
   const [doctor, setDoctor] = useState<Doctor | null>(null)
+  const [article, setArticle] = useState<DoctorArticle | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isUpdating, setIsUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const loadDoctorData = async () => {
+    const loadData = async () => {
       try {
         setIsLoading(true)
         setError(null)
@@ -60,16 +72,39 @@ export default function DoctorArticleNewPage() {
         }
 
         setDoctor(doctorData)
+
+        // Get article data
+        const { article: articleData, error: articleError } = await getDoctorArticle(articleId)
+
+        if (articleError) {
+          setError("Failed to load article: " + articleError.message)
+          return
+        }
+
+        if (!articleData) {
+          setError("Article not found")
+          return
+        }
+
+        // Verify the article belongs to this doctor
+        if (articleData.doctor_id !== doctorData.id) {
+          setError("You don't have permission to edit this article")
+          return
+        }
+
+        setArticle(articleData)
       } catch (err) {
-        console.error("Error loading doctor data:", err)
+        console.error("Error loading data:", err)
         setError("An unexpected error occurred")
       } finally {
         setIsLoading(false)
       }
     }
 
-    loadDoctorData()
-  }, [router])
+    if (articleId) {
+      loadData()
+    }
+  }, [router, articleId])
 
   const handleSignOut = async () => {
     try {
@@ -91,35 +126,43 @@ export default function DoctorArticleNewPage() {
     },
   })
 
+  // Update form when article data is loaded
+  useEffect(() => {
+    if (article) {
+      form.reset({
+        title: article.title || "",
+        slug: article.slug || "",
+        content: article.content || "",
+        excerpt: article.excerpt || "",
+        status: article.status || "draft",
+      })
+    }
+  }, [article, form])
+
   const onSubmit = async (values: z.infer<typeof articleSchema>) => {
     setIsUpdating(true)
     setError(null)
 
-    if (!doctor) {
-      setError("Doctor profile not loaded")
+    if (!doctor || !article) {
+      setError("Data not loaded")
       return
     }
 
     try {
-      const newArticle = {
-        doctor_id: doctor.id,
-        ...values,
-      }
-
-      const { data, error } = await createDoctorArticle(newArticle)
+      const { data, error } = await updateDoctorArticle(article.id, values)
 
       if (error) {
-        setError("Failed to create article: " + error.message)
+        setError("Failed to update article: " + error.message)
         return
       }
 
       toast({
-        title: "Article created successfully!",
-        description: "Your new article has been saved.",
+        title: "Article updated successfully!",
+        description: "Your changes have been saved.",
       })
       router.push("/doctor/articles")
     } catch (err) {
-      console.error("Error creating article:", err)
+      console.error("Error updating article:", err)
       setError("An unexpected error occurred")
     } finally {
       setIsUpdating(false)
@@ -127,24 +170,30 @@ export default function DoctorArticleNewPage() {
   }
 
   if (isLoading) {
-    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading your profile...</div>
+    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading article...</div>
   }
 
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        Error: {error}
-        <Button onClick={() => window.location.reload()}>Try Again</Button>
-        <Button onClick={handleSignOut}>Sign Out</Button>
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Error: {error}</p>
+          <div className="space-x-2">
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
+            <Button onClick={handleSignOut}>Sign Out</Button>
+          </div>
+        </div>
       </div>
     )
   }
 
-  if (!doctor) {
+  if (!doctor || !article) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        Doctor profile not found.
-        <Button onClick={handleSignOut}>Sign Out</Button>
+        <div className="text-center">
+          <p className="mb-4">Article not found.</p>
+          <Button onClick={handleSignOut}>Sign Out</Button>
+        </div>
       </div>
     )
   }
@@ -157,7 +206,7 @@ export default function DoctorArticleNewPage() {
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-4">
                 <GoBackButton fallbackUrl="/doctor/articles" />
-                <CardTitle>Write New Article</CardTitle>
+                <CardTitle>Edit Article</CardTitle>
               </div>
             </div>
           </CardHeader>
@@ -240,8 +289,8 @@ export default function DoctorArticleNewPage() {
                   )}
                 />
 
-                <Button type="submit" disabled={form.formState.isSubmitting} className="w-full">
-                  {form.formState.isSubmitting ? "Creating..." : "Create Article"}
+                <Button type="submit" disabled={isUpdating} className="w-full">
+                  {isUpdating ? "Updating..." : "Update Article"}
                 </Button>
               </form>
             </Form>

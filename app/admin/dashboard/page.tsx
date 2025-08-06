@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -8,12 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { GoBackButton } from "@/components/go-back-button"
-import { Users, UserCheck, UserX, Clock, TrendingUp, Stethoscope, BarChart3, Settings, LogOut, Shield, AlertCircle, Loader2 } from 'lucide-react'
-import { getCurrentUser, getCurrentAdmin, getAdminStats, signOut, type Admin, type AdminStats } from "@/lib/supabase"
+import { Users, UserCheck, Clock, XCircle, AlertCircle, Settings, FileText, BarChart3, Shield, LogOut, Loader2 } from 'lucide-react'
+import { getCurrentAdmin, getAdminStats, signOut, type AdminStats } from "@/lib/supabase"
 
 export default function AdminDashboard() {
   const router = useRouter()
-  const [admin, setAdmin] = useState<Admin | null>(null)
+  const [admin, setAdmin] = useState<any>(null)
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -24,35 +24,22 @@ export default function AdminDashboard() {
         setIsLoading(true)
         setError(null)
 
-        // Check if user is authenticated
-        const { user, error: userError } = await getCurrentUser()
-
-        if (userError || !user) {
-          router.push("/admin/login")
-          return
-        }
-
-        // Get admin profile
+        // Check if user is authenticated as admin
         const { admin: adminData, error: adminError } = await getCurrentAdmin()
 
-        if (adminError) {
-          setError("Failed to load admin profile")
-          return
-        }
-
-        if (!adminData) {
-          setError("Access denied. Admin privileges required.")
+        if (adminError || !adminData) {
+          router.push("/admin/login")
           return
         }
 
         setAdmin(adminData)
 
-        // Get admin stats
+        // Load admin stats
         const { stats: statsData, error: statsError } = await getAdminStats()
 
         if (statsError) {
-          console.error("Failed to load admin stats:", statsError)
-          // Don't fail the whole page for stats error
+          console.error("Error loading stats:", statsError)
+          // Don't redirect on stats error, just show empty stats
         } else {
           setStats(statsData)
         }
@@ -80,8 +67,8 @@ export default function AdminDashboard() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">Loading admin dashboard...</p>
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-green-600" />
+          <p className="text-gray-600">Loading dashboard...</p>
         </div>
       </div>
     )
@@ -93,7 +80,7 @@ export default function AdminDashboard() {
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Error</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Dashboard</h2>
             <p className="text-gray-600 mb-4">{error}</p>
             <div className="space-y-2">
               <Button onClick={() => window.location.reload()} className="w-full">
@@ -114,9 +101,11 @@ export default function AdminDashboard() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
-            <Shield className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+            <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
-            <p className="text-gray-600 mb-4">You do not have admin privileges to access this dashboard.</p>
+            <p className="text-gray-600 mb-4">
+              You don't have permission to access this page.
+            </p>
             <Button onClick={handleSignOut} className="w-full">
               Sign Out
             </Button>
@@ -134,84 +123,81 @@ export default function AdminDashboard() {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center gap-4">
               <GoBackButton fallbackUrl="/" />
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <Shield className="h-6 w-6 text-green-600" />
+              </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-                <p className="text-gray-600">
-                  Welcome back, {admin.first_name} {admin.last_name}
-                </p>
+                <p className="text-gray-600">Welcome back, {admin.first_name} {admin.last_name}</p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <Shield className="h-3 w-3" />
-                {admin.role}
-              </Badge>
-              <Button variant="outline" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
+            <Button variant="outline" onClick={handleSignOut}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Overview */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Doctors</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.total_doctors}</div>
-                <p className="text-xs text-muted-foreground">{stats.recent_registrations} new this month</p>
-              </CardContent>
-            </Card>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Doctors</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats?.total_doctors || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                Registered healthcare professionals
+              </p>
+            </CardContent>
+          </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Pending Approval</CardTitle>
-                <Clock className="h-4 w-4 text-yellow-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-yellow-600">{stats.pending_doctors}</div>
-                <p className="text-xs text-muted-foreground">Awaiting review</p>
-              </CardContent>
-            </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Reviews</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-yellow-600">{stats?.pending_doctors || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                Awaiting approval
+              </p>
+            </CardContent>
+          </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Approved</CardTitle>
-                <UserCheck className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">{stats.approved_doctors}</div>
-                <p className="text-xs text-muted-foreground">Active on platform</p>
-              </CardContent>
-            </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Approved</CardTitle>
+              <UserCheck className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{stats?.approved_doctors || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                Active on platform
+              </p>
+            </CardContent>
+          </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Rejected/Suspended</CardTitle>
-                <UserX className="h-4 w-4 text-red-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-600">
-                  {stats.rejected_doctors + stats.suspended_doctors}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {stats.rejected_doctors} rejected, {stats.suspended_doctors} suspended
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Recent Registrations</CardTitle>
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats?.recent_registrations || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                Last 30 days
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -220,16 +206,31 @@ export default function AdminDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              <p className="text-sm text-gray-600">
+                Review and manage doctor registrations, approve new applications, and update doctor profiles.
+              </p>
               <Button asChild className="w-full">
                 <Link href="/admin/doctors">
-                  <Users className="h-4 w-4 mr-2" />
-                  Manage All Doctors
+                  Manage Doctors
                 </Link>
               </Button>
-              <Button variant="outline" asChild className="w-full bg-transparent">
-                <Link href="/admin/doctors?status=pending">
-                  <Clock className="h-4 w-4 mr-2" />
-                  Review Pending ({stats?.pending_doctors || 0})
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Admin Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-gray-600">
+                Manage admin accounts, roles, and permissions for the platform.
+              </p>
+              <Button asChild className="w-full">
+                <Link href="/admin/admins">
+                  Manage Admins
                 </Link>
               </Button>
             </CardContent>
@@ -239,85 +240,49 @@ export default function AdminDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5" />
-                Analytics
+                Analytics & Reports
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button variant="outline" asChild className="w-full bg-transparent">
+              <p className="text-sm text-gray-600">
+                View platform analytics, generate reports, and monitor system performance.
+              </p>
+              <Button asChild className="w-full">
                 <Link href="/admin/analytics">
-                  <TrendingUp className="h-4 w-4 mr-2" />
                   View Analytics
-                </Link>
-              </Button>
-              <Button variant="outline" asChild className="w-full bg-transparent">
-                <Link href="/admin/reports">
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  Generate Reports
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                System
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button variant="outline" asChild className="w-full bg-transparent">
-                <Link href="/admin/settings">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Platform Settings
-                </Link>
-              </Button>
-              <Button variant="outline" asChild className="w-full bg-transparent">
-                <Link href="/admin/admins">
-                  <Shield className="h-4 w-4 mr-2" />
-                  Manage Admins
                 </Link>
               </Button>
             </CardContent>
           </Card>
         </div>
 
-        {/* Top Specialties */}
-        {stats?.specialties && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Stethoscope className="h-5 w-5" />
-                Top Medical Specialties
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Object.entries(stats.specialties)
-                  .slice(0, 6)
-                  .map(([specialty, count]) => (
-                    <div key={specialty} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <span className="font-medium">{specialty}</span>
-                      <Badge variant="secondary">{count} doctors</Badge>
-                    </div>
-                  ))}
+        {/* Recent Activity */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {stats?.pending_doctors && stats.pending_doctors > 0 ? (
+              <Alert className="border-yellow-200 bg-yellow-50">
+                <Clock className="h-4 w-4 text-yellow-600" />
+                <AlertDescription className="text-yellow-800">
+                  You have {stats.pending_doctors} doctor{stats.pending_doctors > 1 ? 's' : ''} waiting for approval.{' '}
+                  <Link href="/admin/doctors" className="font-medium underline">
+                    Review now
+                  </Link>
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <div className="text-center py-8">
+                <UserCheck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">All caught up!</h3>
+                <p className="text-gray-600">
+                  No pending doctor applications at the moment.
+                </p>
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Alerts */}
-        {stats && stats.pending_doctors > 0 && (
-          <Alert className="mt-6">
-            <Clock className="h-4 w-4" />
-            <AlertDescription>
-              You have {stats.pending_doctors} doctor{stats.pending_doctors !== 1 ? "s" : ""} pending approval.{" "}
-              <Link href="/admin/doctors?status=pending" className="font-medium underline">
-                Review now
-              </Link>
-            </AlertDescription>
-          </Alert>
-        )}
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { GoBackButton } from "@/components/go-back-button"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -158,7 +159,10 @@ export default function DoctorProfilePhotoPage() {
       <div className="max-w-3xl mx-auto bg-white shadow-md rounded-lg overflow-hidden">
         <Card>
           <CardHeader className="px-6 py-4">
-            <CardTitle>Update Profile Photo</CardTitle>
+            <div className="flex items-center gap-4">
+              <GoBackButton fallbackUrl="/doctor/profile" />
+              <CardTitle>Update Profile Photo</CardTitle>
+            </div>
           </CardHeader>
           <CardContent className="p-6">
             <div className="flex flex-col items-center justify-center mb-6">
