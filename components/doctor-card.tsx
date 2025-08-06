@@ -1,19 +1,23 @@
 import Image from "next/image"
 import Link from "next/link"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { MapPin, Calendar, Star } from 'lucide-react'
+import { Card, CardContent } from "@/components/ui/card"
+import { MapPin, Calendar, Star, Clock, Languages } from 'lucide-react'
 
 interface DoctorCardProps {
   id: string
   name: string
   specialty: string
-  experience: string
-  location: string
-  rating: number
-  reviews: number
   image: string
+  location: {
+    address: string
+    city: string
+    state: string
+  }
+  averageRating: number
+  totalReviews: number
+  yearsExperience: number
   languages: string[]
   tier: "basic" | "medium" | "premium"
   slug: string
@@ -23,74 +27,85 @@ export function DoctorCard({
   id,
   name,
   specialty,
-  experience,
-  location,
-  rating,
-  reviews,
   image,
+  location,
+  averageRating,
+  totalReviews,
+  yearsExperience,
   languages,
   tier,
   slug
 }: DoctorCardProps) {
-  const canBook = tier === "medium" || tier === "premium"
-
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
       <CardContent className="p-0">
-        <div className="aspect-square relative overflow-hidden">
-          <Image
-            src={image || "/placeholder.svg?height=400&width=400&text=Doctor"}
-            alt={`${name} - ${specialty}`}
-            fill
-            className="object-cover hover:scale-105 transition-transform duration-300"
-          />
-          <div className="absolute top-2 right-2">
+        <div className="relative">
+          <div className="aspect-[4/3] relative overflow-hidden">
+            <Image
+              src={image || "/placeholder.svg?height=300&width=400&text=Doctor"}
+              alt={name}
+              fill
+              className="object-cover"
+            />
+          </div>
+          <div className="absolute top-3 right-3">
             <Badge
               variant={tier === "premium" ? "default" : tier === "medium" ? "secondary" : "outline"}
-              className="text-xs capitalize"
+              className="capitalize bg-white/90 backdrop-blur-sm"
             >
               {tier}
             </Badge>
           </div>
         </div>
-      </CardContent>
-      <CardFooter className="flex flex-col items-start gap-3 p-6">
-        <div className="space-y-2 w-full">
-          <h3 className="font-semibold text-lg leading-tight">{name}</h3>
-          <Badge variant="secondary" className="text-sm">
-            {specialty}
-          </Badge>
-          <div className="flex items-center gap-2 text-sm text-gray-600">
+
+        <div className="p-6 space-y-4">
+          <div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-1">{name}</h3>
+            <p className="text-emerald-600 font-medium">{specialty}</p>
+          </div>
+
+          <div className="flex items-center gap-2">
             <div className="flex items-center gap-1">
               <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-              <span>{rating.toFixed(1)}</span>
+              <span className="font-medium text-sm">{averageRating.toFixed(1)}</span>
             </div>
-            <span>({reviews} reviews)</span>
+            <span className="text-gray-600 text-sm">({totalReviews} reseñas)</span>
           </div>
-          <div className="flex items-center gap-1 text-sm text-gray-600">
-            <MapPin className="h-3 w-3" />
-            <span>{location}</span>
-          </div>
-          <div className="text-sm text-gray-600">
-            {experience} • {languages.join(", ")}
-          </div>
-        </div>
 
-        <div className="flex flex-col gap-2 w-full">
-          <Button variant="outline" size="sm" asChild className="w-full">
-            <Link href={`/doctors/${slug}`}>View Profile</Link>
-          </Button>
+          <div className="space-y-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 flex-shrink-0" />
+              <span className="truncate">{location.city}, {location.state}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 flex-shrink-0" />
+              <span>{yearsExperience} años de experiencia</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Languages className="h-4 w-4 flex-shrink-0" />
+              <span className="truncate">{languages.join(", ")}</span>
+            </div>
+          </div>
 
-          {canBook && (
-            <Button size="sm" asChild className="w-full flex items-center gap-2">
-              <Link href={`/booking?doctor=${slug}`}>
-                <Calendar className="h-4 w-4" />
-                Book Appointment
+          <div className="flex gap-2 pt-2">
+            <Button asChild variant="outline" className="flex-1">
+              <Link href={`/doctors/${slug}`}>
+                Ver Perfil
               </Link>
             </Button>
-          )}
+            <Button 
+              asChild 
+              className="flex-1"
+              disabled={tier === "basic"}
+            >
+              <Link href={tier === "basic" ? "#" : `/booking?doctor=${slug}`}>
+                <Calendar className="h-4 w-4 mr-2" />
+                {tier === "basic" ? "No Disponible" : "Próximamente"}
+              </Link>
+            </Button>
+          </div>
         </div>
-      </CardFooter>
+      </CardContent>
     </Card>
   )
 }

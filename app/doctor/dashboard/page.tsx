@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { User, MapPin, FileText, Camera, Edit, Plus, Clock, CheckCircle, AlertCircle, XCircle, Loader2, LogOut, Settings } from 'lucide-react'
+import { User, MapPin, FileText, Camera, Edit, Plus, Clock, CheckCircle, AlertCircle, XCircle, Loader2, LogOut, Settings, Instagram, Twitter, Facebook, Linkedin } from 'lucide-react'
 import {
   getCurrentUser,
   getCurrentDoctor,
@@ -47,12 +47,12 @@ export default function DoctorDashboard() {
         const { doctor: doctorData, error: doctorError } = await getCurrentDoctor()
 
         if (doctorError) {
-          setError("Failed to load doctor profile")
+          setError("Error al cargar el perfil del doctor")
           return
         }
 
         if (!doctorData) {
-          setError("Doctor profile not found. Please contact support.")
+          setError("Perfil de doctor no encontrado. Por favor contacta soporte.")
           return
         }
 
@@ -73,7 +73,7 @@ export default function DoctorDashboard() {
         }
       } catch (err) {
         console.error("Error loading doctor data:", err)
-        setError("An unexpected error occurred")
+        setError("Ocurrió un error inesperado")
       } finally {
         setIsLoading(false)
       }
@@ -97,35 +97,35 @@ export default function DoctorDashboard() {
         return (
           <Badge className="bg-green-100 text-green-800 border-green-200">
             <CheckCircle className="h-3 w-3 mr-1" />
-            Approved
+            Aprobado
           </Badge>
         )
       case "pending":
         return (
           <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
             <Clock className="h-3 w-3 mr-1" />
-            Pending Review
+            Pendiente de Revisión
           </Badge>
         )
       case "rejected":
         return (
           <Badge className="bg-red-100 text-red-800 border-red-200">
             <XCircle className="h-3 w-3 mr-1" />
-            Rejected
+            Rechazado
           </Badge>
         )
       case "suspended":
         return (
           <Badge className="bg-gray-100 text-gray-800 border-gray-200">
             <AlertCircle className="h-3 w-3 mr-1" />
-            Suspended
+            Suspendido
           </Badge>
         )
       default:
         return (
           <Badge className="bg-gray-100 text-gray-800 border-gray-200">
             <AlertCircle className="h-3 w-3 mr-1" />
-            Unknown
+            Desconocido
           </Badge>
         )
     }
@@ -136,7 +136,7 @@ export default function DoctorDashboard() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-green-600" />
-          <p className="text-gray-600">Loading your dashboard...</p>
+          <p className="text-gray-600">Cargando tu panel...</p>
         </div>
       </div>
     )
@@ -148,14 +148,14 @@ export default function DoctorDashboard() {
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Dashboard</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Error al Cargar Panel</h2>
             <p className="text-gray-600 mb-4">{error}</p>
             <div className="space-y-2">
               <Button onClick={() => window.location.reload()} className="w-full">
-                Try Again
+                Intentar de Nuevo
               </Button>
               <Button variant="outline" onClick={handleSignOut} className="w-full bg-transparent">
-                Sign Out
+                Cerrar Sesión
               </Button>
             </div>
           </CardContent>
@@ -170,18 +170,20 @@ export default function DoctorDashboard() {
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
             <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Profile Not Found</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Perfil No Encontrado</h2>
             <p className="text-gray-600 mb-4">
-              Your doctor profile could not be found. Please contact support for assistance.
+              No se pudo encontrar tu perfil de doctor. Por favor contacta soporte para asistencia.
             </p>
             <Button onClick={handleSignOut} className="w-full">
-              Sign Out
+              Cerrar Sesión
             </Button>
           </CardContent>
         </Card>
       </div>
     )
   }
+
+  const socialMedia = doctor.social_media || {}
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -216,12 +218,12 @@ export default function DoctorDashboard() {
               <Button variant="outline" asChild>
                 <Link href="/doctor/profile">
                   <Settings className="h-4 w-4 mr-2" />
-                  Settings
+                  Configuración
                 </Link>
               </Button>
               <Button variant="outline" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
+                Cerrar Sesión
               </Button>
             </div>
           </div>
@@ -235,8 +237,8 @@ export default function DoctorDashboard() {
           <Alert className="mb-6 border-yellow-200 bg-yellow-50">
             <Clock className="h-4 w-4" />
             <AlertDescription>
-              Your account is currently under review. You'll receive an email notification once your profile is
-              approved. This typically takes 1-2 business days.
+              Tu cuenta está actualmente bajo revisión. Recibirás una notificación por email una vez que tu perfil sea
+              aprobado. Esto típicamente toma 1-2 días hábiles.
             </AlertDescription>
           </Alert>
         )}
@@ -245,8 +247,8 @@ export default function DoctorDashboard() {
           <Alert variant="destructive" className="mb-6">
             <XCircle className="h-4 w-4" />
             <AlertDescription>
-              Your account application was not approved. Please contact support for more information about the review
-              process.
+              Tu solicitud de cuenta no fue aprobada. Por favor contacta soporte para más información sobre el proceso
+              de revisión.
             </AlertDescription>
           </Alert>
         )}
@@ -255,17 +257,18 @@ export default function DoctorDashboard() {
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Your account has been suspended. Please contact support for assistance with reactivating your account.
+              Tu cuenta ha sido suspendida. Por favor contacta soporte para asistencia con la reactivación de tu cuenta.
             </AlertDescription>
           </Alert>
         )}
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="locations">Locations</TabsTrigger>
-            <TabsTrigger value="articles">Articles</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="overview">Resumen</TabsTrigger>
+            <TabsTrigger value="profile">Perfil</TabsTrigger>
+            <TabsTrigger value="social">Redes Sociales</TabsTrigger>
+            <TabsTrigger value="locations">Ubicaciones</TabsTrigger>
+            <TabsTrigger value="articles">Artículos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -273,39 +276,39 @@ export default function DoctorDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Profile Status</CardTitle>
+                  <CardTitle className="text-sm font-medium">Estado del Perfil</CardTitle>
                   <User className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{doctor.status === "approved" ? "Active" : "Inactive"}</div>
+                  <div className="text-2xl font-bold">{doctor.status === "approved" ? "Activo" : "Inactivo"}</div>
                   <p className="text-xs text-muted-foreground">
-                    {doctor.status === "approved" ? "Visible to patients" : "Not visible to patients"}
+                    {doctor.status === "approved" ? "Visible para pacientes" : "No visible para pacientes"}
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Locations</CardTitle>
+                  <CardTitle className="text-sm font-medium">Ubicaciones</CardTitle>
                   <MapPin className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{locations.length}</div>
                   <p className="text-xs text-muted-foreground">
-                    {locations.filter((l) => l.is_primary).length} primary
+                    {locations.filter((l) => l.is_primary).length} principal
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Articles</CardTitle>
+                  <CardTitle className="text-sm font-medium">Artículos</CardTitle>
                   <FileText className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{articles.length}</div>
                   <p className="text-xs text-muted-foreground">
-                    {articles.filter((a) => a.status === "published").length} published
+                    {articles.filter((a) => a.status === "published").length} publicados
                   </p>
                 </CardContent>
               </Card>
@@ -317,20 +320,20 @@ export default function DoctorDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <User className="h-5 w-5" />
-                    Profile Management
+                    Gestión de Perfil
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Button asChild className="w-full">
                     <Link href="/doctor/profile">
                       <Edit className="h-4 w-4 mr-2" />
-                      Edit Profile
+                      Editar Perfil
                     </Link>
                   </Button>
                   <Button variant="outline" asChild className="w-full bg-transparent">
                     <Link href="/doctor/profile/photo">
                       <Camera className="h-4 w-4 mr-2" />
-                      Update Photo
+                      Actualizar Foto
                     </Link>
                   </Button>
                 </CardContent>
@@ -340,20 +343,20 @@ export default function DoctorDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <MapPin className="h-5 w-5" />
-                    Location Management
+                    Gestión de Ubicaciones
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Button asChild className="w-full">
                     <Link href="/doctor/locations">
                       <MapPin className="h-4 w-4 mr-2" />
-                      Manage Locations
+                      Gestionar Ubicaciones
                     </Link>
                   </Button>
                   <Button variant="outline" asChild className="w-full bg-transparent">
                     <Link href="/doctor/locations/new">
                       <Plus className="h-4 w-4 mr-2" />
-                      Add Location
+                      Agregar Ubicación
                     </Link>
                   </Button>
                 </CardContent>
@@ -367,10 +370,10 @@ export default function DoctorDashboard() {
                   <CardTitle className="flex items-center justify-between">
                     <span className="flex items-center gap-2">
                       <FileText className="h-5 w-5" />
-                      Recent Articles
+                      Artículos Recientes
                     </span>
                     <Button variant="outline" size="sm" asChild>
-                      <Link href="/doctor/articles">View All</Link>
+                      <Link href="/doctor/articles">Ver Todos</Link>
                     </Button>
                   </CardTitle>
                 </CardHeader>
@@ -381,12 +384,12 @@ export default function DoctorDashboard() {
                         <div>
                           <h4 className="font-medium">{article.title}</h4>
                           <p className="text-sm text-gray-500">
-                            {article.status === "published" ? "Published" : "Draft"} •{" "}
-                            {new Date(article.created_at).toLocaleDateString()}
+                            {article.status === "published" ? "Publicado" : "Borrador"} •{" "}
+                            {new Date(article.created_at).toLocaleDateString('es-ES')}
                           </p>
                         </div>
                         <Button variant="outline" size="sm" asChild>
-                          <Link href={`/doctor/articles/${article.id}`}>Edit</Link>
+                          <Link href={`/doctor/articles/${article.id}`}>Editar</Link>
                         </Button>
                       </div>
                     ))}
@@ -399,19 +402,19 @@ export default function DoctorDashboard() {
           <TabsContent value="profile">
             <Card>
               <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
+                <CardTitle>Información del Perfil</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <h3 className="text-lg font-semibold mb-3">Personal Information</h3>
+                    <h3 className="text-lg font-semibold mb-3">Información Personal</h3>
                     <div className="space-y-3">
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Full Name</label>
+                        <label className="text-sm font-medium text-gray-500">Nombre Completo</label>
                         <p className="font-medium">
                           Dr. {doctor.first_name} {doctor.last_name}
                         </p>
-                        <p className="text-sm text-gray-500">Name cannot be changed</p>
+                        <p className="text-sm text-gray-500">El nombre no se puede cambiar</p>
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-500">Email</label>
@@ -419,7 +422,7 @@ export default function DoctorDashboard() {
                       </div>
                       {doctor.phone && (
                         <div>
-                          <label className="text-sm font-medium text-gray-500">Phone</label>
+                          <label className="text-sm font-medium text-gray-500">Teléfono</label>
                           <p className="font-medium">{doctor.phone}</p>
                         </div>
                       )}
@@ -427,19 +430,19 @@ export default function DoctorDashboard() {
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-semibold mb-3">Professional Information</h3>
+                    <h3 className="text-lg font-semibold mb-3">Información Profesional</h3>
                     <div className="space-y-3">
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Specialty</label>
+                        <label className="text-sm font-medium text-gray-500">Especialidad</label>
                         <p className="font-medium">{doctor.specialty}</p>
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Years of Experience</label>
-                        <p className="font-medium">{doctor.years_experience} years</p>
+                        <label className="text-sm font-medium text-gray-500">Años de Experiencia</label>
+                        <p className="font-medium">{doctor.years_experience} años</p>
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Languages</label>
-                        <p className="font-medium">{doctor.languages?.join(", ") || "English"}</p>
+                        <label className="text-sm font-medium text-gray-500">Idiomas</label>
+                        <p className="font-medium">{doctor.languages?.join(", ") || "Español"}</p>
                       </div>
                     </div>
                   </div>
@@ -447,7 +450,7 @@ export default function DoctorDashboard() {
 
                 {doctor.bio && (
                   <div>
-                    <h3 className="text-lg font-semibold mb-3">Professional Bio</h3>
+                    <h3 className="text-lg font-semibold mb-3">Biografía Profesional</h3>
                     <p className="text-gray-700 leading-relaxed">{doctor.bio}</p>
                   </div>
                 )}
@@ -456,13 +459,80 @@ export default function DoctorDashboard() {
                   <Button asChild>
                     <Link href="/doctor/profile/edit">
                       <Edit className="h-4 w-4 mr-2" />
-                      Edit Profile
+                      Editar Perfil
                     </Link>
                   </Button>
                   <Button variant="outline" asChild>
                     <Link href="/doctor/profile/photo">
                       <Camera className="h-4 w-4 mr-2" />
-                      Update Photo
+                      Actualizar Foto
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="social">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Instagram className="h-5 w-5" />
+                  Redes Sociales
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 p-4 border rounded-lg">
+                      <Instagram className="h-6 w-6 text-pink-600" />
+                      <div className="flex-1">
+                        <h4 className="font-medium">Instagram</h4>
+                        <p className="text-sm text-gray-600">
+                          {socialMedia.instagram ? socialMedia.instagram : "No configurado"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 p-4 border rounded-lg">
+                      <Twitter className="h-6 w-6 text-blue-500" />
+                      <div className="flex-1">
+                        <h4 className="font-medium">Twitter</h4>
+                        <p className="text-sm text-gray-600">
+                          {socialMedia.twitter ? socialMedia.twitter : "No configurado"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 p-4 border rounded-lg">
+                      <Facebook className="h-6 w-6 text-blue-600" />
+                      <div className="flex-1">
+                        <h4 className="font-medium">Facebook</h4>
+                        <p className="text-sm text-gray-600">
+                          {socialMedia.facebook ? socialMedia.facebook : "No configurado"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 p-4 border rounded-lg">
+                      <Linkedin className="h-6 w-6 text-blue-700" />
+                      <div className="flex-1">
+                        <h4 className="font-medium">LinkedIn</h4>
+                        <p className="text-sm text-gray-600">
+                          {socialMedia.linkedin ? socialMedia.linkedin : "No configurado"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <Button asChild>
+                    <Link href="/doctor/profile/social">
+                      <Edit className="h-4 w-4 mr-2" />
+                      Editar Redes Sociales
                     </Link>
                   </Button>
                 </div>
@@ -474,11 +544,11 @@ export default function DoctorDashboard() {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Practice Locations</CardTitle>
+                  <CardTitle>Ubicaciones de Práctica</CardTitle>
                   <Button asChild>
                     <Link href="/doctor/locations/new">
                       <Plus className="h-4 w-4 mr-2" />
-                      Add Location
+                      Agregar Ubicación
                     </Link>
                   </Button>
                 </div>
@@ -492,7 +562,7 @@ export default function DoctorDashboard() {
                           <div>
                             <div className="flex items-center gap-2">
                               <h4 className="font-medium">{location.name}</h4>
-                              {location.is_primary && <Badge variant="secondary">Primary</Badge>}
+                              {location.is_primary && <Badge variant="secondary">Principal</Badge>}
                             </div>
                             <p className="text-gray-600">{location.address}</p>
                             <p className="text-gray-600">
@@ -503,7 +573,7 @@ export default function DoctorDashboard() {
                           <Button variant="outline" size="sm" asChild>
                             <Link href={`/doctor/locations/${location.id}`}>
                               <Edit className="h-3 w-3 mr-1" />
-                              Edit
+                              Editar
                             </Link>
                           </Button>
                         </div>
@@ -513,12 +583,12 @@ export default function DoctorDashboard() {
                 ) : (
                   <div className="text-center py-8">
                     <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No locations added</h3>
-                    <p className="text-gray-600 mb-4">Add your practice locations to help patients find you.</p>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No hay ubicaciones agregadas</h3>
+                    <p className="text-gray-600 mb-4">Agrega las ubicaciones de tu práctica para ayudar a los pacientes a encontrarte.</p>
                     <Button asChild>
                       <Link href="/doctor/locations/new">
                         <Plus className="h-4 w-4 mr-2" />
-                        Add Your First Location
+                        Agregar Tu Primera Ubicación
                       </Link>
                     </Button>
                   </div>
@@ -531,11 +601,11 @@ export default function DoctorDashboard() {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>My Articles</CardTitle>
+                  <CardTitle>Mis Artículos</CardTitle>
                   <Button asChild>
                     <Link href="/doctor/articles/new">
                       <Plus className="h-4 w-4 mr-2" />
-                      Write Article
+                      Escribir Artículo
                     </Link>
                   </Button>
                 </div>
@@ -558,23 +628,23 @@ export default function DoctorDashboard() {
                                       : "outline"
                                 }
                               >
-                                {article.status}
+                                {article.status === "published" ? "Publicado" : article.status === "draft" ? "Borrador" : article.status}
                               </Badge>
                             </div>
                             {article.excerpt && <p className="text-gray-600 mb-2">{article.excerpt}</p>}
                             <div className="flex items-center gap-4 text-sm text-gray-500">
                               <span>
                                 {article.status === "published" && article.published_at
-                                  ? `Published ${new Date(article.published_at).toLocaleDateString()}`
-                                  : `Created ${new Date(article.created_at).toLocaleDateString()}`}
+                                  ? `Publicado ${new Date(article.published_at).toLocaleDateString('es-ES')}`
+                                  : `Creado ${new Date(article.created_at).toLocaleDateString('es-ES')}`}
                               </span>
-                              {article.read_time && <span>{article.read_time} min read</span>}
+                              {article.read_time && <span>{article.read_time} min de lectura</span>}
                             </div>
                           </div>
                           <Button variant="outline" size="sm" asChild>
                             <Link href={`/doctor/articles/${article.id}`}>
                               <Edit className="h-3 w-3 mr-1" />
-                              Edit
+                              Editar
                             </Link>
                           </Button>
                         </div>
@@ -584,14 +654,14 @@ export default function DoctorDashboard() {
                 ) : (
                   <div className="text-center py-8">
                     <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No articles yet</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Aún no hay artículos</h3>
                     <p className="text-gray-600 mb-4">
-                      Share your expertise by writing articles for patients and colleagues.
+                      Comparte tu experiencia escribiendo artículos para pacientes y colegas.
                     </p>
                     <Button asChild>
                       <Link href="/doctor/articles/new">
                         <Plus className="h-4 w-4 mr-2" />
-                        Write Your First Article
+                        Escribir Tu Primer Artículo
                       </Link>
                     </Button>
                   </div>

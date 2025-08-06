@@ -14,16 +14,16 @@ export default function HomePage() {
 
       <div className="container mx-auto px-4 py-20" id="doctors-section">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">Meet Our Specialists</h2>
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">Conoce a Nuestros Especialistas</h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-            Our diverse team of healthcare professionals brings together decades of experience across multiple
-            specialties to provide comprehensive care for you and your family.
+            Nuestro diverso equipo de profesionales de la salud reúne décadas de experiencia en múltiples
+            especialidades para brindar atención integral para ti y tu familia.
           </p>
 
           <Button variant="outline" asChild className="flex items-center gap-2 mx-auto bg-transparent">
             <Link href="/map">
               <MapPin className="h-4 w-4" />
-              View on Map
+              Ver en Mapa
             </Link>
           </Button>
         </div>
@@ -32,7 +32,7 @@ export default function HomePage() {
           fallback={
             <div className="flex items-center justify-center py-20">
               <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
-              <span className="ml-2 text-gray-600">Loading doctors...</span>
+              <span className="ml-2 text-gray-600">Cargando doctores...</span>
             </div>
           }
         >

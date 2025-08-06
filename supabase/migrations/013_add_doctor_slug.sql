@@ -1,6 +1,9 @@
 -- Add slug column to doctors table
 ALTER TABLE doctors ADD COLUMN IF NOT EXISTS slug TEXT;
 
+-- Add social media columns to doctors table
+ALTER TABLE doctors ADD COLUMN IF NOT EXISTS social_media JSONB DEFAULT '{}';
+
 -- Create index for slug lookups
 CREATE INDEX IF NOT EXISTS idx_doctors_slug ON doctors(slug);
 
@@ -35,8 +38,8 @@ UPDATE doctors
 SET slug = generate_doctor_slug(first_name, last_name, id)
 WHERE slug IS NULL;
 
--- Add trigger to auto-generate slug for new doctors
-CREATE OR REPLACE FUNCTION set_doctor_slug()
+-- Trigger to auto-generate slug for new doctors
+CREATE OR REPLACE FUNCTION auto_generate_doctor_slug()
 RETURNS TRIGGER AS $$
 BEGIN
   IF NEW.slug IS NULL OR NEW.slug = '' THEN
@@ -46,8 +49,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trigger_set_doctor_slug ON doctors;
-CREATE TRIGGER trigger_set_doctor_slug
+CREATE TRIGGER trigger_auto_generate_doctor_slug
   BEFORE INSERT OR UPDATE ON doctors
   FOR EACH ROW
-  EXECUTE FUNCTION set_doctor_slug();
+  EXECUTE FUNCTION auto_generate_doctor_slug();
