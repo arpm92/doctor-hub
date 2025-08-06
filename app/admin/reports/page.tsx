@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Download, FileText, Filter, Search, Users, TrendingUp, MapPin } from "lucide-react"
+import { GoBackButton } from "@/components/go-back-button"
+import { Download, FileText, Filter, Search, Users, TrendingUp, MapPin } from 'lucide-react'
 import { getAllDoctors, getAdminStats } from "@/lib/supabase"
 import type { Doctor, AdminStats } from "@/lib/supabase"
 
@@ -143,7 +144,10 @@ export default function AdminReportsPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
+          <div className="flex items-center gap-4">
+            <GoBackButton fallbackUrl="/admin/dashboard" />
+            <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
+          </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => exportToCSV(filteredDoctors, "doctors-report.csv")}>
               <Download className="h-4 w-4 mr-2" />

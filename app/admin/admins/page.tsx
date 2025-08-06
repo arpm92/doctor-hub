@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { UserPlus, Shield, Search, MoreHorizontal, Crown, User, AlertCircle, CheckCircle } from "lucide-react"
+import { GoBackButton } from "@/components/go-back-button"
+import { UserPlus, Shield, Search, MoreHorizontal, Crown, User, AlertCircle, CheckCircle } from 'lucide-react'
 import { supabase, adminSignUp } from "@/lib/supabase"
 import type { Admin } from "@/lib/supabase"
 
@@ -143,10 +144,13 @@ export default function AdminAdminsPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Shield className="h-8 w-8" />
-            Admin Management
-          </h1>
+          <div className="flex items-center gap-4">
+            <GoBackButton fallbackUrl="/admin/dashboard" />
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+              <Shield className="h-8 w-8" />
+              Admin Management
+            </h1>
+          </div>
 
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>

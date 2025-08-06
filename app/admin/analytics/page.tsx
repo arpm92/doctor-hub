@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { BarChart3, Users, TrendingUp, Clock, Star } from "lucide-react"
+import { GoBackButton } from "@/components/go-back-button"
+import { BarChart3, Users, TrendingUp, Clock, Star } from 'lucide-react'
 import { getAdminStats, getAllDoctors } from "@/lib/supabase"
 import type { AdminStats, Doctor } from "@/lib/supabase"
 
@@ -97,7 +98,10 @@ export default function AdminAnalyticsPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
+          <div className="flex items-center gap-4">
+            <GoBackButton fallbackUrl="/admin/dashboard" />
+            <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
+          </div>
           <Button variant="outline">
             <BarChart3 className="h-4 w-4 mr-2" />
             Export Report

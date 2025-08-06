@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Settings, Save, Shield, Bell, Globe, Users, CreditCard, AlertCircle, CheckCircle } from "lucide-react"
+import { GoBackButton } from "@/components/go-back-button"
+import { Settings, Save, Shield, Bell, Globe, Users, CreditCard, AlertCircle, CheckCircle } from 'lucide-react'
 
 export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(false)
@@ -69,10 +70,13 @@ export default function AdminSettingsPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Settings className="h-8 w-8" />
-            Admin Settings
-          </h1>
+          <div className="flex items-center gap-4">
+            <GoBackButton fallbackUrl="/admin/dashboard" />
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+              <Settings className="h-8 w-8" />
+              Admin Settings
+            </h1>
+          </div>
           <Button onClick={handleSave} disabled={loading} className="flex items-center gap-2">
             {loading ? (
               <>

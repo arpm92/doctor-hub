@@ -9,10 +9,10 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Search, Filter, ExternalLink, AlertTriangle, Crown, Star, Shield, User, Calendar, Award } from "lucide-react"
-import { getAllDoctors, updateDoctorStatus, updateDoctorProfile, type Doctor } from "@/lib/supabase"
+import { GoBackButton } from "@/components/go-back-button"
+import { Search, Filter, ExternalLink, AlertTriangle, Crown, Star, Shield, User, Calendar, Award, CheckCircle } from 'lucide-react'
+import { getAllDoctors, updateDoctorStatus, updateDoctorProfile, getCurrentAdmin, type Doctor } from "@/lib/supabase"
 import Link from "next/link"
-import { getCurrentAdmin } from "@/lib/adminAccess" // Import getCurrentAdmin
 
 const statusColors = {
   pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
@@ -39,6 +39,7 @@ export default function AdminDoctorsPage() {
   const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [tierFilter, setTierFilter] = useState("all")
@@ -119,6 +120,8 @@ export default function AdminDoctorsPage() {
   const handleStatusUpdate = async (doctorId: string, newStatus: Doctor["status"]) => {
     try {
       setUpdatingDoctors((prev) => new Set(prev).add(doctorId))
+      setError("")
+      setSuccess("")
 
       const { data, error } = await updateDoctorStatus(doctorId, newStatus)
 
@@ -129,6 +132,10 @@ export default function AdminDoctorsPage() {
 
       // Update local state
       setDoctors((prev) => prev.map((doctor) => (doctor.id === doctorId ? { ...doctor, status: newStatus } : doctor)))
+      setSuccess(`Doctor status updated to ${newStatus} successfully!`)
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(""), 3000)
     } catch (err) {
       console.error("Error updating doctor status:", err)
       setError("Failed to update doctor status")
@@ -144,6 +151,8 @@ export default function AdminDoctorsPage() {
   const handleTierUpdate = async (doctorId: string, newTier: Doctor["tier"]) => {
     try {
       setUpdatingDoctors((prev) => new Set(prev).add(doctorId))
+      setError("")
+      setSuccess("")
 
       const { data, error } = await updateDoctorProfile(doctorId, { tier: newTier })
 
@@ -159,6 +168,10 @@ export default function AdminDoctorsPage() {
 
       // Update local state
       setDoctors((prev) => prev.map((doctor) => (doctor.id === doctorId ? { ...doctor, tier: newTier } : doctor)))
+      setSuccess(`Doctor tier updated to ${newTier} successfully!`)
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(""), 3000)
     } catch (err) {
       console.error("Error updating doctor tier:", err)
       setError("Failed to update doctor tier")
@@ -205,9 +218,12 @@ export default function AdminDoctorsPage() {
   return (
     <div className="container mx-auto py-8 space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Doctor Management</h1>
-          <p className="text-gray-600 mt-1">Manage doctor registrations and profiles</p>
+        <div className="flex items-center gap-4">
+          <GoBackButton fallbackUrl="/admin/dashboard" />
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Doctor Management</h1>
+            <p className="text-gray-600 mt-1">Manage doctor registrations and profiles</p>
+          </div>
         </div>
         <div className="text-sm text-gray-500">Total: {doctors.length} doctors</div>
       </div>
@@ -226,6 +242,13 @@ export default function AdminDoctorsPage() {
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {success && (
+        <Alert className="border-green-200 bg-green-50">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800">{success}</AlertDescription>
         </Alert>
       )}
 
@@ -309,7 +332,7 @@ export default function AdminDoctorsPage() {
                       <TableCell>
                         <div>
                           <div className="font-medium text-gray-900">
-                            {doctor.first_name} {doctor.last_name}
+                            Dr. {doctor.first_name} {doctor.last_name}
                           </div>
                           <div className="text-sm text-gray-500">{doctor.email}</div>
                           {doctor.phone && <div className="text-sm text-gray-500">{doctor.phone}</div>}
@@ -324,8 +347,47 @@ export default function AdminDoctorsPage() {
                       <TableCell>
                         <span className="text-sm">{doctor.years_experience} years</span>
                       </TableCell>
-                      <TableCell>{getStatusBadge(doctor.status)}</TableCell>
-                      {tierFeatureAvailable && <TableCell>{getTierBadge(doctor.tier)}</TableCell>}
+                      <TableCell>
+                        <div className="space-y-2">
+                          {getStatusBadge(doctor.status)}
+                          <Select
+                            value={doctor.status}
+                            onValueChange={(value: Doctor["status"]) => handleStatusUpdate(doctor.id, value)}
+                            disabled={updatingDoctors.has(doctor.id)}
+                          >
+                            <SelectTrigger className="w-32 h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="approved">Approved</SelectItem>
+                              <SelectItem value="rejected">Rejected</SelectItem>
+                              <SelectItem value="suspended">Suspended</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </TableCell>
+                      {tierFeatureAvailable && (
+                        <TableCell>
+                          <div className="space-y-2">
+                            {getTierBadge(doctor.tier)}
+                            <Select
+                              value={doctor.tier}
+                              onValueChange={(value: Doctor["tier"]) => handleTierUpdate(doctor.id, value)}
+                              disabled={updatingDoctors.has(doctor.id)}
+                            >
+                              <SelectTrigger className="w-32 h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="basic">Basic</SelectItem>
+                                <SelectItem value="medium">Medium</SelectItem>
+                                <SelectItem value="premium">Premium</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </TableCell>
+                      )}
                       <TableCell>
                         <div className="flex items-center gap-1 text-sm text-gray-500">
                           <Calendar className="w-4 h-4" />
