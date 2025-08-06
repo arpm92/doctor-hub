@@ -1,176 +1,284 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
-import { LogIn, Heart, Stethoscope, ChevronDown, Shield, User, LogOut } from 'lucide-react'
-import { getCurrentUser, signOut } from "@/lib/supabase"
+import { Menu, X, User, LogOut, Settings, Calendar, MapPin } from 'lucide-react'
+import { supabase } from "@/lib/supabase"
+import { useRouter } from "next/navigation"
 
 export function NavigationHeader() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [user, setUser] = useState<any>(null)
+  const [userProfile, setUserProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { user } = await getCurrentUser()
-      setUser(user)
-      setLoading(false)
-    }
-
     checkUser()
   }, [])
 
-  const handleSignOut = async () => {
+  const checkUser = async () => {
     try {
-      await signOut()
-      setUser(null)
-      router.push("/")
-      router.refresh()
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+
+      if (user) {
+        // Check if user is a patient
+        const { data: patient } = await supabase
+          .from("patients")
+          .select("*")
+          .eq("id", user.id)
+          .single()
+
+        if (patient) {
+          setUserProfile({ ...patient, type: "patient" })
+        } else {
+          // Check if user is a doctor
+          const { data: doctor } = await supabase
+            .from("doctors")
+            .select("*")
+            .eq("id", user.id)
+            .single()
+
+          if (doctor) {
+            setUserProfile({ ...doctor, type: "doctor" })
+          } else {
+            // Check if user is an admin
+            const { data: admin } = await supabase
+              .from("admins")
+              .select("*")
+              .eq("id", user.id)
+              .single()
+
+            if (admin) {
+              setUserProfile({ ...admin, type: "admin" })
+            }
+          }
+        }
+      }
     } catch (error) {
-      console.error("Sign out error:", error)
+      console.error("Error checking user:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+    setUserProfile(null)
+    router.push("/")
+  }
+
+  const getDashboardLink = () => {
+    if (!userProfile) return "/profile"
+    
+    switch (userProfile.type) {
+      case "admin":
+        return "/admin/dashboard"
+      case "doctor":
+        return "/doctor/dashboard"
+      case "patient":
+      default:
+        return "/profile"
+    }
+  }
+
+  const getUserDisplayName = () => {
+    if (!userProfile) return user?.email || "User"
+    
+    switch (userProfile.type) {
+      case "admin":
+        return userProfile.full_name || "Admin"
+      case "doctor":
+        return `Dr. ${userProfile.first_name} ${userProfile.last_name}`
+      case "patient":
+      default:
+        return userProfile.full_name || user?.email || "User"
     }
   }
 
   return (
-    <header className="bg-white border-b border-emerald-200 sticky top-0 z-50 backdrop-blur-sm">
+    <header className="bg-white shadow-sm border-b sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 font-bold text-xl text-gray-900 hover:text-emerald-600 transition-colors">
-            <Heart className="h-6 w-6 text-emerald-600" />
-            MedConnect
+          <Link href="/" className="flex items-center space-x-2">
+            <Image
+              src="/placeholder-logo.svg"
+              alt="MedConnect"
+              width={32}
+              height={32}
+              className="w-8 h-8"
+            />
+            <span className="text-xl font-bold text-emerald-600">MedConnect</span>
           </Link>
 
-          {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href="/#doctors-section" className="text-gray-600 hover:text-emerald-600 transition-colors">
-              Find Doctors
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-8">
+            <Link href="/#doctors-section" className="text-gray-700 hover:text-emerald-600 transition-colors">
+              Doctors
             </Link>
-            <Link href="/map" className="text-gray-600 hover:text-emerald-600 transition-colors">
-              Map View
+            <Link href="/map" className="text-gray-700 hover:text-emerald-600 transition-colors flex items-center gap-1">
+              <MapPin className="h-4 w-4" />
+              Map
             </Link>
-            <Link href="/pricing" className="text-gray-600 hover:text-emerald-600 transition-colors">
-              For Doctors
+            <Link href="/pricing" className="text-gray-700 hover:text-emerald-600 transition-colors">
+              Pricing
             </Link>
-            <Link href="/contact" className="text-gray-600 hover:text-emerald-600 transition-colors">
+            <Link href="/contact" className="text-gray-700 hover:text-emerald-600 transition-colors">
               Contact
             </Link>
           </nav>
 
-          {/* Auth Section */}
-          <div className="flex items-center gap-2">
-            {!loading && !user && (
-              <>
-                {/* Doctor Login */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="flex items-center gap-2 bg-transparent border-emerald-200 text-emerald-700 hover:bg-emerald-50">
-                      <Stethoscope className="h-4 w-4" />
-                      <span className="hidden sm:inline">Doctor</span>
-                      <ChevronDown className="h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem asChild>
-                      <Link href="/auth/doctor/login" className="flex items-center gap-2">
-                        <LogIn className="h-4 w-4" />
-                        Doctor Sign In
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/auth/doctor/register" className="flex items-center gap-2">
-                        <Heart className="h-4 w-4" />
-                        Join Our Network
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin/login" className="flex items-center gap-2">
-                        <Shield className="h-4 w-4" />
-                        Admin Access
-                      </Link>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                {/* Patient Login */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button size="sm" className="flex items-center gap-2 relative bg-emerald-600 hover:bg-emerald-700">
-                      <Heart className="h-4 w-4" />
-                      <span className="hidden sm:inline">Patient</span>
-                      <Badge variant="secondary" className="absolute -top-1 -right-1 text-xs px-1 py-0 h-4 bg-yellow-100 text-yellow-800">
-                        Soon
-                      </Badge>
-                      <ChevronDown className="h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <div className="px-2 py-1.5">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Shield className="h-3 w-3" />
-                        Coming Soon
-                      </div>
-                    </div>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem disabled className="text-gray-400">
-                      <LogIn className="h-4 w-4 mr-2" />
-                      Sign In (Coming Soon)
-                    </DropdownMenuItem>
-                    <DropdownMenuItem disabled className="text-gray-400">
-                      <Heart className="h-4 w-4 mr-2" />
-                      Create Account (Coming Soon)
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </>
-            )}
-
-            {!loading && user && (
+          {/* Desktop Auth */}
+          <div className="hidden md:flex items-center space-x-4">
+            {loading ? (
+              <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse" />
+            ) : user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center gap-2 bg-transparent border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+                  <Button variant="ghost" className="flex items-center space-x-2">
                     <User className="h-4 w-4" />
-                    <span className="hidden sm:inline">{user.email}</span>
-                    <ChevronDown className="h-3 w-3" />
+                    <span>{getUserDisplayName()}</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem asChild>
-                    <Link href="/doctor/dashboard" className="flex items-center gap-2">
-                      <Stethoscope className="h-4 w-4" />
+                    <Link href={getDashboardLink()} className="flex items-center">
+                      <Settings className="h-4 w-4 mr-2" />
                       Dashboard
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/doctor/profile" className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      Profile
-                    </Link>
-                  </DropdownMenuItem>
+                  {userProfile?.type === "patient" && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/appointments" className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        My Appointments
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={handleSignOut} 
-                    className="flex items-center gap-2 text-red-600 cursor-pointer"
-                  >
-                    <LogOut className="h-4 w-4" />
+                  <DropdownMenuItem onClick={handleSignOut} className="flex items-center text-red-600">
+                    <LogOut className="h-4 w-4 mr-2" />
                     Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Button variant="ghost" asChild>
+                  <Link href="/auth/login">Sign In</Link>
+                </Button>
+                <Button asChild>
+                  <Link href="/auth/register">Get Started</Link>
+                </Button>
+              </div>
             )}
           </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="md:hidden p-2 rounded-md hover:bg-gray-100"
+          >
+            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
         </div>
+
+        {/* Mobile Menu */}
+        {isMenuOpen && (
+          <div className="md:hidden py-4 border-t">
+            <nav className="flex flex-col space-y-4">
+              <Link 
+                href="/#doctors-section" 
+                className="text-gray-700 hover:text-emerald-600 transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Doctors
+              </Link>
+              <Link 
+                href="/map" 
+                className="text-gray-700 hover:text-emerald-600 transition-colors flex items-center gap-1"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <MapPin className="h-4 w-4" />
+                Map
+              </Link>
+              <Link 
+                href="/pricing" 
+                className="text-gray-700 hover:text-emerald-600 transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Pricing
+              </Link>
+              <Link 
+                href="/contact" 
+                className="text-gray-700 hover:text-emerald-600 transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Contact
+              </Link>
+              
+              <div className="pt-4 border-t">
+                {loading ? (
+                  <div className="w-full h-10 bg-gray-200 rounded animate-pulse" />
+                ) : user ? (
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-600">Signed in as {getUserDisplayName()}</p>
+                    <Button variant="outline" asChild className="w-full justify-start">
+                      <Link href={getDashboardLink()} onClick={() => setIsMenuOpen(false)}>
+                        <Settings className="h-4 w-4 mr-2" />
+                        Dashboard
+                      </Link>
+                    </Button>
+                    {userProfile?.type === "patient" && (
+                      <Button variant="outline" asChild className="w-full justify-start">
+                        <Link href="/appointments" onClick={() => setIsMenuOpen(false)}>
+                          <Calendar className="h-4 w-4 mr-2" />
+                          My Appointments
+                        </Link>
+                      </Button>
+                    )}
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        handleSignOut()
+                        setIsMenuOpen(false)
+                      }}
+                      className="w-full justify-start text-red-600"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Button variant="outline" asChild className="w-full">
+                      <Link href="/auth/login" onClick={() => setIsMenuOpen(false)}>
+                        Sign In
+                      </Link>
+                    </Button>
+                    <Button asChild className="w-full">
+                      <Link href="/auth/register" onClick={() => setIsMenuOpen(false)}>
+                        Get Started
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </nav>
+          </div>
+        )}
       </div>
     </header>
   )

@@ -1,146 +1,135 @@
 "use client"
 
-import type React from "react"
-import { GoBackButton } from "@/components/go-back-button"
-
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { toast } from "@/components/ui/use-toast"
-import { getCurrentUser, getCurrentDoctor, updateDoctorProfile, uploadFile, signOut, type Doctor } from "@/lib/supabase"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { GoBackButton } from "@/components/go-back-button"
+import { Upload, Camera, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
+import { getCurrentDoctor, updateDoctorProfile, supabase } from "@/lib/supabase"
 
-export default function DoctorProfilePhotoPage() {
+export default function DoctorPhotoPage() {
   const router = useRouter()
-  const [doctor, setDoctor] = useState<Doctor | null>(null)
+  const [doctor, setDoctor] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isUpdating, setIsUpdating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [uploadSuccess, setUploadSuccess] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   useEffect(() => {
-    const loadDoctorData = async () => {
+    const loadDoctor = async () => {
       try {
-        setIsLoading(true)
-        setError(null)
-
-        // Check if user is authenticated
-        const { user, error: userError } = await getCurrentUser()
-
-        if (userError || !user) {
+        const { doctor: doctorData, error } = await getCurrentDoctor()
+        
+        if (error || !doctorData) {
           router.push("/auth/doctor/login")
           return
         }
 
-        // Get doctor profile
-        const { doctor: doctorData, error: doctorError } = await getCurrentDoctor()
-
-        if (doctorError) {
-          setError("Failed to load doctor profile")
-          return
-        }
-
-        if (!doctorData) {
-          setError("Doctor profile not found. Please contact support.")
-          return
-        }
-
         setDoctor(doctorData)
+        if (doctorData.profile_image) {
+          setPreviewUrl(doctorData.profile_image)
+        }
       } catch (err) {
-        console.error("Error loading doctor data:", err)
-        setError("An unexpected error occurred")
+        console.error("Error loading doctor:", err)
+        router.push("/auth/doctor/login")
       } finally {
         setIsLoading(false)
       }
     }
 
-    loadDoctorData()
+    loadDoctor()
   }, [router])
 
-  const handleSignOut = async () => {
-    try {
-      await signOut()
-      router.push("/auth/doctor/login")
-    } catch (err) {
-      console.error("Sign out error:", err)
-    }
-  }
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
-    if (file) {
-      setSelectedFile(file)
-      setPreviewUrl(URL.createObjectURL(file))
-    }
-  }
+    if (!file || !doctor) return
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault()
-    setIsUpdating(true)
-    setError(null)
-
-    if (!doctor) {
-      setError("Doctor profile not loaded")
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setUploadError("Please select an image file")
       return
     }
 
-    if (!selectedFile) {
-      setError("Please select a file")
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("Image must be smaller than 5MB")
       return
     }
+
+    setIsUploading(true)
+    setUploadError(null)
+    setUploadSuccess(false)
 
     try {
-      // Upload file to Supabase storage
-      const { data: uploadData, error: uploadError } = await uploadFile(
-        selectedFile,
-        "doctor-profile-images",
-        `${doctor.id}/${selectedFile.name}`,
-      )
+      // Create a unique filename
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${doctor.id}/profile.${fileExt}`
+
+      console.log("Uploading file:", fileName)
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        })
 
       if (uploadError) {
-        setError("Failed to upload file: " + uploadError.message)
+        console.error("Upload error:", uploadError)
+        setUploadError(`Upload failed: ${uploadError.message}`)
         return
       }
 
-      // Update doctor profile with the new image URL
-      const updates = {
-        profile_image: uploadData?.publicUrl,
-      }
+      console.log("Upload successful:", uploadData)
 
-      const { data, error } = await updateDoctorProfile(doctor.id, updates)
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName)
 
-      if (error) {
-        setError("Failed to update profile: " + error.message)
-        return
-      }
+      console.log("Public URL:", publicUrl)
 
-      setDoctor({ ...doctor, ...updates })
-      toast({
-        title: "Profile photo updated successfully!",
-        description: "Your new photo has been saved.",
+      // Update doctor profile with new image URL
+      const { data: updateData, error: updateError } = await updateDoctorProfile(doctor.id, {
+        profile_image: publicUrl
       })
+
+      if (updateError) {
+        console.error("Profile update error:", updateError)
+        setUploadError(`Failed to update profile: ${updateError.message}`)
+        return
+      }
+
+      console.log("Profile updated successfully")
+
+      // Update local state
+      setDoctor({ ...doctor, profile_image: publicUrl })
+      setPreviewUrl(publicUrl)
+      setUploadSuccess(true)
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setUploadSuccess(false), 3000)
+
     } catch (err) {
-      console.error("Error updating profile:", err)
-      setError("An unexpected error occurred")
+      console.error("Unexpected error:", err)
+      setUploadError("An unexpected error occurred. Please try again.")
     } finally {
-      setIsUpdating(false)
+      setIsUploading(false)
     }
   }
 
   if (isLoading) {
-    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading your profile...</div>
-  }
-
-  if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        Error: {error}
-        <Button onClick={() => window.location.reload()}>Try Again</Button>
-        <Button onClick={handleSignOut}>Sign Out</Button>
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-emerald-600" />
+          <p className="text-gray-600">Loading profile...</p>
+        </div>
       </div>
     )
   }
@@ -148,58 +137,165 @@ export default function DoctorProfilePhotoPage() {
   if (!doctor) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        Doctor profile not found.
-        <Button onClick={handleSignOut}>Sign Out</Button>
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+            <p className="text-gray-600 mb-4">Please sign in to access your profile.</p>
+            <Button onClick={() => router.push("/auth/doctor/login")} className="w-full">
+              Sign In
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-3xl mx-auto bg-white shadow-md rounded-lg overflow-hidden">
-        <Card>
-          <CardHeader className="px-6 py-4">
-            <div className="flex items-center gap-4">
-              <GoBackButton fallbackUrl="/doctor/profile" />
-              <CardTitle>Update Profile Photo</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="flex flex-col items-center justify-center mb-6">
-              <Avatar className="w-32 h-32">
-                {previewUrl ? (
-                  <AvatarImage src={previewUrl || "/placeholder.svg"} alt="Preview" />
-                ) : doctor.profile_image ? (
-                  <AvatarImage src={doctor.profile_image || "/placeholder.svg"} alt={doctor.name} />
-                ) : (
-                  <AvatarFallback>
-                    {doctor.first_name[0]}
-                    {doctor.last_name[0]}
-                  </AvatarFallback>
-                )}
-              </Avatar>
-              <p className="text-sm text-gray-500 mt-2">Current Profile Photo</p>
-            </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="mb-8">
+          <GoBackButton fallbackUrl="/doctor/profile" />
+          <h1 className="text-3xl font-bold text-gray-900 mt-4">Profile Photo</h1>
+          <p className="text-gray-600 mt-2">
+            Upload a professional photo to help patients recognize you
+          </p>
+        </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <Label htmlFor="profile_image">New Photo</Label>
-                <Input
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Current Photo */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Camera className="h-5 w-5" />
+                Current Photo
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="aspect-square relative bg-gray-100 rounded-lg overflow-hidden mb-4">
+                {previewUrl ? (
+                  <Image
+                    src={previewUrl || "/placeholder.svg"}
+                    alt="Profile photo"
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <div className="text-center">
+                      <Camera className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">No photo uploaded</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="text-sm text-gray-600">
+                <p className="mb-2"><strong>Tips for a great profile photo:</strong></p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Use a professional headshot</li>
+                  <li>Ensure good lighting and clear image</li>
+                  <li>Face should be clearly visible</li>
+                  <li>Professional attire recommended</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Upload Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="h-5 w-5" />
+                Upload New Photo
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {uploadError && (
+                <Alert className="border-red-200 bg-red-50">
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                  <AlertDescription className="text-red-800">
+                    {uploadError}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {uploadSuccess && (
+                <Alert className="border-green-200 bg-green-50">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-800">
+                    Profile photo updated successfully!
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-emerald-400 transition-colors">
+                <input
                   type="file"
-                  id="profile_image"
-                  name="profile_image"
                   accept="image/*"
-                  onChange={handleFileChange}
-                  className="w-full"
+                  onChange={handleFileSelect}
+                  disabled={isUploading}
+                  className="hidden"
+                  id="photo-upload"
                 />
+                <label
+                  htmlFor="photo-upload"
+                  className={`cursor-pointer ${isUploading ? 'cursor-not-allowed opacity-50' : ''}`}
+                >
+                  {isUploading ? (
+                    <div className="space-y-4">
+                      <Loader2 className="h-12 w-12 text-emerald-600 mx-auto animate-spin" />
+                      <p className="text-gray-600">Uploading photo...</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <Upload className="h-12 w-12 text-gray-400 mx-auto" />
+                      <div>
+                        <p className="text-lg font-medium text-gray-900">
+                          Click to upload a photo
+                        </p>
+                        <p className="text-gray-600">
+                          or drag and drop
+                        </p>
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        PNG, JPG, WEBP up to 5MB
+                      </p>
+                    </div>
+                  )}
+                </label>
               </div>
 
-              <Button type="submit" disabled={isUpdating || !selectedFile} className="w-full">
-                {isUpdating ? "Updating..." : "Upload New Photo"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+              <div className="space-y-3">
+                <Button
+                  onClick={() => document.getElementById('photo-upload')?.click()}
+                  disabled={isUploading}
+                  className="w-full"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Choose Photo
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() => router.push("/doctor/profile")}
+                  className="w-full bg-transparent"
+                >
+                  Back to Profile
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )
