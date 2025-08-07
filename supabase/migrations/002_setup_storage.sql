@@ -1,47 +1,65 @@
--- 002_setup_storage.sql
--- Creates storage buckets and policies.
+-- Setup storage buckets for the application
 
--- Create 'avatars' bucket for profile pictures
-insert into storage.buckets (id, name, public)
-values ('avatars', 'avatars', true)
-on conflict (id) do nothing;
+-- Create profile images bucket
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'profile-images',
+  'profile-images',
+  true,
+  5242880, -- 5MB
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+) ON CONFLICT (id) DO NOTHING;
 
--- Create 'article_images' bucket for blog post images
-insert into storage.buckets (id, name, public)
-values ('article_images', 'article_images', true)
-on conflict (id) do nothing;
+-- Create article images bucket
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'article-images',
+  'article-images',
+  true,
+  10485760, -- 10MB
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+) ON CONFLICT (id) DO NOTHING;
 
--- Policies for 'avatars' bucket
-create policy "Allow public read access to avatars"
-on storage.objects for select
-using ( bucket_id = 'avatars' );
+-- Storage policies for profile images
+CREATE POLICY "Anyone can view profile images" ON storage.objects
+  FOR SELECT USING (bucket_id = 'profile-images');
 
-create policy "Allow authenticated users to upload avatars"
-on storage.objects for insert
-with check ( bucket_id = 'avatars' and auth.role() = 'authenticated' );
+CREATE POLICY "Authenticated users can upload profile images" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'profile-images' 
+    AND auth.role() = 'authenticated'
+  );
 
-create policy "Allow user to update their own avatar"
-on storage.objects for update
-using ( auth.uid() = owner )
-with check ( bucket_id = 'avatars' );
+CREATE POLICY "Users can update their own profile images" ON storage.objects
+  FOR UPDATE USING (
+    bucket_id = 'profile-images' 
+    AND auth.uid()::text = (storage.foldername(name))[1]
+  );
 
--- Policies for 'article_images' bucket
-create policy "Allow public read access to article images"
-on storage.objects for select
-using ( bucket_id = 'article_images' );
+CREATE POLICY "Users can delete their own profile images" ON storage.objects
+  FOR DELETE USING (
+    bucket_id = 'profile-images' 
+    AND auth.uid()::text = (storage.foldername(name))[1]
+  );
 
-create policy "Allow doctors to upload article images"
-on storage.objects for insert
-with check (
-  bucket_id = 'article_images' and
-  auth.role() = 'authenticated' and
-  (storage.foldername(name))[1] = auth.uid()::text -- User can only upload to their own folder
-);
+-- Storage policies for article images
+CREATE POLICY "Anyone can view article images" ON storage.objects
+  FOR SELECT USING (bucket_id = 'article-images');
 
-create policy "Allow doctors to manage their own article images"
-on storage.objects for update
-using (
-  auth.uid() = owner and
-  (storage.foldername(name))[1] = auth.uid()::text
-)
-with check ( bucket_id = 'article_images' );
+CREATE POLICY "Authenticated users can upload article images" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'article-images' 
+    AND auth.role() = 'authenticated'
+  );
+
+CREATE POLICY "Users can update their own article images" ON storage.objects
+  FOR UPDATE USING (
+    bucket_id = 'article-images' 
+    AND auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+CREATE POLICY "Users can delete their own article images" ON storage.objects
+  FOR DELETE USING (
+    bucket_id = 'article-images' 
+    AND auth.uid()::text = (storage.foldername(name))[1]
+  );
