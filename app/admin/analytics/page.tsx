@@ -1,12 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { GoBackButton } from "@/components/go-back-button"
-import { BarChart3, Users, TrendingUp, Calendar, AlertCircle, LogOut, Loader2 } from 'lucide-react'
-import { getCurrentAdmin, getAdminStats, signOut, type AdminStats } from "@/lib/supabase"
+import { BarChart3, Users, TrendingUp, Clock, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react'
+import { getCurrentAdmin, getAdminStats, type AdminStats } from "@/lib/supabase"
 
 export default function AdminAnalyticsPage() {
   const router = useRouter()
@@ -21,28 +22,25 @@ export default function AdminAnalyticsPage() {
         setIsLoading(true)
         setError(null)
 
-        // Check if user is authenticated as admin
+        // Check admin access
         const { admin: adminData, error: adminError } = await getCurrentAdmin()
-
         if (adminError || !adminData) {
           router.push("/admin/login")
           return
         }
-
         setAdmin(adminData)
 
-        // Load admin stats
+        // Load analytics stats
         const { stats: statsData, error: statsError } = await getAdminStats()
-
         if (statsError) {
-          setError("Failed to load analytics data")
+          setError("Error al cargar estadísticas")
           return
         }
 
         setStats(statsData)
       } catch (err) {
-        console.error("Error loading data:", err)
-        setError("An unexpected error occurred")
+        console.error("Error loading analytics data:", err)
+        setError("Ocurrió un error inesperado")
       } finally {
         setIsLoading(false)
       }
@@ -51,21 +49,12 @@ export default function AdminAnalyticsPage() {
     loadData()
   }, [router])
 
-  const handleSignOut = async () => {
-    try {
-      await signOut()
-      router.push("/admin/login")
-    } catch (err) {
-      console.error("Sign out error:", err)
-    }
-  }
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-green-600" />
-          <p className="text-gray-600">Loading analytics...</p>
+          <p className="text-gray-600">Cargando análisis...</p>
         </div>
       </div>
     )
@@ -79,14 +68,9 @@ export default function AdminAnalyticsPage() {
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Analytics</h2>
             <p className="text-gray-600 mb-4">{error}</p>
-            <div className="space-y-2">
-              <Button onClick={() => window.location.reload()} className="w-full">
-                Try Again
-              </Button>
-              <Button variant="outline" onClick={handleSignOut} className="w-full bg-transparent">
-                Sign Out
-              </Button>
-            </div>
+            <button onClick={() => window.location.reload()} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
+              Try Again
+            </button>
           </CardContent>
         </Card>
       </div>
@@ -103,9 +87,9 @@ export default function AdminAnalyticsPage() {
             <p className="text-gray-600 mb-4">
               You don't have permission to access this page.
             </p>
-            <Button onClick={handleSignOut} className="w-full">
-              Sign Out
-            </Button>
+            <button onClick={() => router.push("/admin/login")} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
+              Sign In
+            </button>
           </CardContent>
         </Card>
       </div>
@@ -120,18 +104,19 @@ export default function AdminAnalyticsPage() {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center gap-4">
               <GoBackButton fallbackUrl="/admin/dashboard" />
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <BarChart3 className="h-6 w-6 text-green-600" />
-              </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Analytics & Reports</h1>
-                <p className="text-gray-600">Platform insights and performance metrics</p>
+                <p className="text-gray-600">
+                  Platform insights and performance metrics
+                </p>
               </div>
             </div>
-            <Button variant="outline" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <BarChart3 className="h-3 w-3" />
+                Live Data
+              </Badge>
+            </div>
           </div>
         </div>
       </div>
@@ -148,20 +133,7 @@ export default function AdminAnalyticsPage() {
             <CardContent>
               <div className="text-2xl font-bold">{stats?.total_doctors || 0}</div>
               <p className="text-xs text-muted-foreground">
-                All registered doctors
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Doctors</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats?.approved_doctors || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                Approved and active
+                Registered healthcare professionals
               </p>
             </CardContent>
           </Card>
@@ -169,7 +141,7 @@ export default function AdminAnalyticsPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Pending Reviews</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-yellow-600">{stats?.pending_doctors || 0}</div>
@@ -181,7 +153,20 @@ export default function AdminAnalyticsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Recent Signups</CardTitle>
+              <CardTitle className="text-sm font-medium">Approved</CardTitle>
+              <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{stats?.approved_doctors || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                Active on platform
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Recent Registrations</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -196,37 +181,24 @@ export default function AdminAnalyticsPage() {
         {/* Specialties Breakdown */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Doctors by Specialty</CardTitle>
+            <CardTitle>Specialties Distribution</CardTitle>
           </CardHeader>
           <CardContent>
             {stats?.specialties && Object.keys(stats.specialties).length > 0 ? (
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Object.entries(stats.specialties).map(([specialty, count]) => (
-                  <div key={specialty} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                      <span className="font-medium">{specialty}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-32 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-green-500 h-2 rounded-full" 
-                          style={{ 
-                            width: `${Math.min((count / (stats.total_doctors || 1)) * 100, 100)}%` 
-                          }}
-                        ></div>
-                      </div>
-                      <span className="text-sm font-medium w-8 text-right">{count}</span>
-                    </div>
+                  <div key={specialty} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <span className="font-medium text-gray-900">{specialty}</span>
+                    <Badge variant="secondary">{count}</Badge>
                   </div>
                 ))}
               </div>
             ) : (
               <div className="text-center py-8">
                 <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No specialty data available</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Data Available</h3>
                 <p className="text-gray-600">
-                  Specialty breakdown will appear once doctors register.
+                  Specialty data will appear here once doctors register
                 </p>
               </div>
             )}
@@ -234,40 +206,43 @@ export default function AdminAnalyticsPage() {
         </Card>
 
         {/* Status Breakdown */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <Card>
             <CardHeader>
-              <CardTitle>Doctor Status Distribution</CardTitle>
+              <CardTitle>Doctor Status Overview</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span>Approved</span>
+                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <span className="font-medium text-green-900">Approved</span>
                   </div>
-                  <span className="font-medium">{stats?.approved_doctors || 0}</span>
+                  <Badge className="bg-green-100 text-green-800">{stats?.approved_doctors || 0}</Badge>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                    <span>Pending</span>
+                
+                <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-yellow-600" />
+                    <span className="font-medium text-yellow-900">Pending</span>
                   </div>
-                  <span className="font-medium">{stats?.pending_doctors || 0}</span>
+                  <Badge className="bg-yellow-100 text-yellow-800">{stats?.pending_doctors || 0}</Badge>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <span>Rejected</span>
+                
+                <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <XCircle className="h-5 w-5 text-red-600" />
+                    <span className="font-medium text-red-900">Rejected</span>
                   </div>
-                  <span className="font-medium">{stats?.rejected_doctors || 0}</span>
+                  <Badge className="bg-red-100 text-red-800">{stats?.rejected_doctors || 0}</Badge>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-                    <span>Suspended</span>
+                
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <XCircle className="h-5 w-5 text-gray-600" />
+                    <span className="font-medium text-gray-900">Suspended</span>
                   </div>
-                  <span className="font-medium">{stats?.suspended_doctors || 0}</span>
+                  <Badge className="bg-gray-100 text-gray-800">{stats?.suspended_doctors || 0}</Badge>
                 </div>
               </div>
             </CardContent>
@@ -278,35 +253,50 @@ export default function AdminAnalyticsPage() {
               <CardTitle>Platform Health</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span>Approval Rate</span>
-                  <span className="font-medium text-green-600">
-                    {stats?.total_doctors && stats.total_doctors > 0 
-                      ? Math.round(((stats.approved_doctors || 0) / stats.total_doctors) * 100)
-                      : 0}%
-                  </span>
+              <div className="space-y-6">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Approval Rate</span>
+                    <span className="text-sm text-gray-500">
+                      {stats?.total_doctors ? Math.round((stats.approved_doctors / stats.total_doctors) * 100) : 0}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-green-600 h-2 rounded-full" 
+                      style={{ 
+                        width: `${stats?.total_doctors ? (stats.approved_doctors / stats.total_doctors) * 100 : 0}%` 
+                      }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span>Pending Review Rate</span>
-                  <span className="font-medium text-yellow-600">
-                    {stats?.total_doctors && stats.total_doctors > 0 
-                      ? Math.round(((stats.pending_doctors || 0) / stats.total_doctors) * 100)
-                      : 0}%
-                  </span>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Recent Activity</span>
+                    <span className="text-sm text-gray-500">
+                      {stats?.recent_registrations || 0} new this month
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full" 
+                      style={{ 
+                        width: `${Math.min((stats?.recent_registrations || 0) * 10, 100)}%` 
+                      }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span>Active Specialties</span>
-                  <span className="font-medium">
-                    {stats?.specialties ? Object.keys(stats.specialties).length : 0}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Recent Growth</span>
-                  <span className="font-medium text-blue-600">
-                    {stats?.recent_registrations || 0} new doctors
-                  </span>
-                </div>
+
+                <Alert>
+                  <TrendingUp className="h-4 w-4" />
+                  <AlertDescription>
+                    {stats?.pending_doctors && stats.pending_doctors > 0 
+                      ? `You have ${stats.pending_doctors} doctor${stats.pending_doctors > 1 ? 's' : ''} waiting for review.`
+                      : "All doctor applications have been reviewed. Great job!"
+                    }
+                  </AlertDescription>
+                </Alert>
               </div>
             </CardContent>
           </Card>

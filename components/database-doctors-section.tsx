@@ -7,7 +7,7 @@ async function getDoctors() {
       .from("doctors")
       .select(`
         *,
-        doctor_locations!inner(*)
+        doctor_locations(*)
       `)
       .eq("status", "approved")
       .order("created_at", { ascending: false })
