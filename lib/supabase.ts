@@ -40,6 +40,12 @@ export interface Doctor {
   status: "pending" | "approved" | "rejected" | "suspended"
   tier: "basic" | "medium" | "premium"
   slug?: string
+  social_media?: {
+    instagram?: string
+    twitter?: string
+    facebook?: string
+    linkedin?: string
+  }
   created_at: string
   updated_at: string
 }
@@ -51,14 +57,14 @@ export interface DoctorLocation {
   address: string
   city: string
   state: string
-  postal_code?: string
+  postal_code?: string | null
   country: string
-  phone?: string
-  email?: string
-  website?: string
+  phone?: string | null
+  email?: string | null
+  website?: string | null
   is_primary: boolean
-  latitude?: number
-  longitude?: number
+  latitude?: number | null
+  longitude?: number | null
   created_at: string
   updated_at: string
 }
@@ -69,7 +75,7 @@ export interface DoctorArticle {
   title: string
   slug: string
   content: string
-  excerpt?: string
+  excerpt?: string | null
   featured_image?: string
   status: "draft" | "published" | "archived"
   tags?: string[]
@@ -579,7 +585,18 @@ export const testSupabaseConnection = async () => {
     const { data, error } = await supabase.auth.getSession()
     console.log("Connection test result:", { data: !!data, error })
 
-    return { success: !error, error }
+    if (error) {
+      return { success: false, error: { message: error.message, status: (error as any).status } }
+    }
+    if (!data.session) {
+      // This is okay for anon key, let's try a public query
+      const { error: rpcError } = await supabase.from('doctors').select('id').limit(1)
+      if (rpcError) {
+        return { success: false, error: { message: rpcError.message, details: rpcError.details } }
+      }
+    }
+
+    return { success: true, error: null }
   } catch (err) {
     console.error("Connection test failed:", err)
     return { success: false, error: err }
@@ -701,33 +718,6 @@ export const updateDoctorProfile = async (doctorId: string, updates: Partial<Doc
   try {
     console.log("Updating doctor profile:", doctorId, updates)
 
-    // If we're trying to update the tier, handle it separately
-    if (updates.tier) {
-      // First, try to check if the tier column exists by doing a simple select
-      try {
-        const { data: testDoctor, error: testError } = await supabase
-          .from("doctors")
-          .select("tier")
-          .eq("id", doctorId)
-          .limit(1)
-          .single()
-
-        if (testError && testError.message.includes("tier")) {
-          // Tier column doesn't exist, return an informative error
-          return {
-            data: null,
-            error: {
-              message:
-                "The tier feature is not yet available. Please run the database migration to add the tier column.",
-              code: "TIER_COLUMN_MISSING",
-            },
-          }
-        }
-      } catch (testErr) {
-        console.log("Could not test tier column, proceeding with update...")
-      }
-    }
-
     // Proceed with the update
     const { data, error } = await supabase
       .from("doctors")
@@ -738,18 +728,6 @@ export const updateDoctorProfile = async (doctorId: string, updates: Partial<Doc
 
     if (error) {
       console.error("Error updating doctor profile:", error)
-
-      // Check if it's a tier column error
-      if (error.message.includes("tier") || error.message.includes("column")) {
-        return {
-          data: null,
-          error: {
-            message: "The tier feature is not yet available. Please run the database migration to add the tier column.",
-            code: "TIER_COLUMN_MISSING",
-          },
-        }
-      }
-
       return { data: null, error }
     }
 
@@ -797,7 +775,7 @@ export const createDoctorLocation = async (location: Omit<DoctorLocation, "id" |
   }
 }
 
-export const updateDoctorLocation = async (locationId: string, updates: Partial<DoctorLocation>) => {
+export const updateDoctorLocation = async (locationId: string, updates: Partial<Omit<DoctorLocation, 'id' | 'doctor_id'>>) => {
   try {
     const { data, error } = await supabase
       .from("doctor_locations")
@@ -887,7 +865,7 @@ export const createDoctorArticle = async (article: Omit<DoctorArticle, "id" | "c
   }
 }
 
-export const updateDoctorArticle = async (articleId: string, updates: Partial<DoctorArticle>) => {
+export const updateDoctorArticle = async (articleId: string, updates: Partial<Omit<DoctorArticle, 'id' | 'doctor_id'>>) => {
   try {
     const { data, error } = await supabase
       .from("doctor_articles")

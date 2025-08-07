@@ -45,7 +45,7 @@ export default function AdminDashboard() {
         }
       } catch (err) {
         console.error("Error loading admin data:", err)
-        setError("An unexpected error occurred")
+        setError("Ocurrió un error inesperado")
       } finally {
         setIsLoading(false)
       }
@@ -68,7 +68,7 @@ export default function AdminDashboard() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-green-600" />
-          <p className="text-gray-600">Loading dashboard...</p>
+          <p className="text-gray-600">Cargando panel de control...</p>
         </div>
       </div>
     )
@@ -80,14 +80,14 @@ export default function AdminDashboard() {
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Dashboard</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Error al Cargar Panel</h2>
             <p className="text-gray-600 mb-4">{error}</p>
             <div className="space-y-2">
               <Button onClick={() => window.location.reload()} className="w-full">
-                Try Again
+                Intentar de Nuevo
               </Button>
               <Button variant="outline" onClick={handleSignOut} className="w-full bg-transparent">
-                Sign Out
+                Cerrar Sesión
               </Button>
             </div>
           </CardContent>
@@ -102,12 +102,12 @@ export default function AdminDashboard() {
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
             <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Acceso Denegado</h2>
             <p className="text-gray-600 mb-4">
-              You don't have permission to access this page.
+              No tienes permisos para acceder a esta página.
             </p>
             <Button onClick={handleSignOut} className="w-full">
-              Sign Out
+              Cerrar Sesión
             </Button>
           </CardContent>
         </Card>
@@ -127,13 +127,13 @@ export default function AdminDashboard() {
                 <Shield className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-                <p className="text-gray-600">Welcome back, {admin.first_name} {admin.last_name}</p>
+                <h1 className="text-2xl font-bold text-gray-900">Panel de Administración</h1>
+                <p className="text-gray-600">Bienvenido de vuelta, {admin.first_name} {admin.last_name}</p>
               </div>
             </div>
             <Button variant="outline" onClick={handleSignOut}>
               <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
+              Cerrar Sesión
             </Button>
           </div>
         </div>
@@ -145,52 +145,52 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Doctors</CardTitle>
+              <CardTitle className="text-sm font-medium">Total de Doctores</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats?.total_doctors || 0}</div>
               <p className="text-xs text-muted-foreground">
-                Registered healthcare professionals
+                Profesionales de la salud registrados
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Reviews</CardTitle>
+              <CardTitle className="text-sm font-medium">Revisiones Pendientes</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-yellow-600">{stats?.pending_doctors || 0}</div>
               <p className="text-xs text-muted-foreground">
-                Awaiting approval
+                Esperando aprobación
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Approved</CardTitle>
+              <CardTitle className="text-sm font-medium">Aprobados</CardTitle>
               <UserCheck className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">{stats?.approved_doctors || 0}</div>
               <p className="text-xs text-muted-foreground">
-                Active on platform
+                Activos en la plataforma
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Recent Registrations</CardTitle>
+              <CardTitle className="text-sm font-medium">Registros Recientes</CardTitle>
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats?.recent_registrations || 0}</div>
               <p className="text-xs text-muted-foreground">
-                Last 30 days
+                Últimos 30 días
               </p>
             </CardContent>
           </Card>
@@ -202,16 +202,16 @@ export default function AdminDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
-                Doctor Management
+                Gestión de Doctores
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-gray-600">
-                Review and manage doctor registrations, approve new applications, and update doctor profiles.
+                Revisar y gestionar registros de doctores, aprobar nuevas aplicaciones y actualizar perfiles.
               </p>
               <Button asChild className="w-full">
                 <Link href="/admin/doctors">
-                  Manage Doctors
+                  Gestionar Doctores
                 </Link>
               </Button>
             </CardContent>
@@ -221,16 +221,16 @@ export default function AdminDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5" />
-                Admin Management
+                Gestión de Administradores
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-gray-600">
-                Manage admin accounts, roles, and permissions for the platform.
+                Gestionar cuentas de administradores, roles y permisos para la plataforma.
               </p>
               <Button asChild className="w-full">
                 <Link href="/admin/admins">
-                  Manage Admins
+                  Gestionar Administradores
                 </Link>
               </Button>
             </CardContent>
@@ -240,16 +240,16 @@ export default function AdminDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5" />
-                Analytics & Reports
+                Análisis y Reportes
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-gray-600">
-                View platform analytics, generate reports, and monitor system performance.
+                Ver análisis de la plataforma, generar reportes y monitorear el rendimiento del sistema.
               </p>
               <Button asChild className="w-full">
                 <Link href="/admin/analytics">
-                  View Analytics
+                  Ver Análisis
                 </Link>
               </Button>
             </CardContent>
@@ -259,25 +259,25 @@ export default function AdminDashboard() {
         {/* Recent Activity */}
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle>Actividad Reciente</CardTitle>
           </CardHeader>
           <CardContent>
             {stats?.pending_doctors && stats.pending_doctors > 0 ? (
               <Alert className="border-yellow-200 bg-yellow-50">
                 <Clock className="h-4 w-4 text-yellow-600" />
                 <AlertDescription className="text-yellow-800">
-                  You have {stats.pending_doctors} doctor{stats.pending_doctors > 1 ? 's' : ''} waiting for approval.{' '}
+                  Tienes {stats.pending_doctors} doctor{stats.pending_doctors > 1 ? 'es' : ''} esperando aprobación.{' '}
                   <Link href="/admin/doctors" className="font-medium underline">
-                    Review now
+                    Revisar ahora
                   </Link>
                 </AlertDescription>
               </Alert>
             ) : (
               <div className="text-center py-8">
                 <UserCheck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">All caught up!</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">¡Todo al día!</h3>
                 <p className="text-gray-600">
-                  No pending doctor applications at the moment.
+                  No hay aplicaciones de doctores pendientes en este momento.
                 </p>
               </div>
             )}

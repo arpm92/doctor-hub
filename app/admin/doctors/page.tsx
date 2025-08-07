@@ -49,7 +49,7 @@ export default function AdminDoctorsPage() {
         // Load doctors
         const { doctors: doctorsData, error: doctorsError } = await getAllDoctors()
         if (doctorsError) {
-          setError("Failed to load doctors")
+          setError("Error al cargar doctores")
           return
         }
 
@@ -57,7 +57,7 @@ export default function AdminDoctorsPage() {
         setFilteredDoctors(doctorsData || [])
       } catch (err) {
         console.error("Error loading data:", err)
-        setError("An unexpected error occurred")
+        setError("Ocurrió un error inesperado")
       } finally {
         setIsLoading(false)
       }
@@ -98,7 +98,7 @@ export default function AdminDoctorsPage() {
       const { data, error } = await updateDoctorStatus(doctorId, newStatus)
       
       if (error) {
-        alert(`Failed to update status: ${error.message}`)
+        alert(`Error al actualizar estado: ${error.message}`)
         return
       }
 
@@ -108,7 +108,7 @@ export default function AdminDoctorsPage() {
       ))
     } catch (err) {
       console.error("Error updating status:", err)
-      alert("Failed to update doctor status")
+      alert("Error al actualizar el estado del doctor")
     } finally {
       setIsUpdating(null)
     }
@@ -121,9 +121,9 @@ export default function AdminDoctorsPage() {
       
       if (error) {
         if (error.code === "TIER_COLUMN_MISSING") {
-          alert("The tier feature is not yet available. Please run the database migration to add the tier column.")
+          alert("La función de nivel no está disponible aún. Por favor ejecuta la migración de base de datos para agregar la columna tier.")
         } else {
-          alert(`Failed to update tier: ${error.message}`)
+          alert(`Error al actualizar nivel: ${error.message}`)
         }
         return
       }
@@ -134,7 +134,7 @@ export default function AdminDoctorsPage() {
       ))
     } catch (err) {
       console.error("Error updating tier:", err)
-      alert("Failed to update doctor tier")
+      alert("Error al actualizar el nivel del doctor")
     } finally {
       setIsUpdating(null)
     }
@@ -143,13 +143,13 @@ export default function AdminDoctorsPage() {
   const getStatusBadge = (status: Doctor["status"]) => {
     switch (status) {
       case "approved":
-        return <Badge className="bg-green-100 text-green-800"><UserCheck className="h-3 w-3 mr-1" />Approved</Badge>
+        return <Badge className="bg-green-100 text-green-800"><UserCheck className="h-3 w-3 mr-1" />Aprobado</Badge>
       case "pending":
-        return <Badge className="bg-yellow-100 text-yellow-800"><Clock className="h-3 w-3 mr-1" />Pending</Badge>
+        return <Badge className="bg-yellow-100 text-yellow-800"><Clock className="h-3 w-3 mr-1" />Pendiente</Badge>
       case "rejected":
-        return <Badge className="bg-red-100 text-red-800"><UserX className="h-3 w-3 mr-1" />Rejected</Badge>
+        return <Badge className="bg-red-100 text-red-800"><UserX className="h-3 w-3 mr-1" />Rechazado</Badge>
       case "suspended":
-        return <Badge className="bg-gray-100 text-gray-800"><XCircle className="h-3 w-3 mr-1" />Suspended</Badge>
+        return <Badge className="bg-gray-100 text-gray-800"><XCircle className="h-3 w-3 mr-1" />Suspendido</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
@@ -160,11 +160,11 @@ export default function AdminDoctorsPage() {
       case "premium":
         return <Badge className="bg-purple-100 text-purple-800">Premium</Badge>
       case "medium":
-        return <Badge className="bg-blue-100 text-blue-800">Medium</Badge>
+        return <Badge className="bg-blue-100 text-blue-800">Medio</Badge>
       case "basic":
-        return <Badge className="bg-gray-100 text-gray-800">Basic</Badge>
+        return <Badge className="bg-gray-100 text-gray-800">Básico</Badge>
       default:
-        return <Badge variant="outline">Basic</Badge>
+        return <Badge variant="outline">Básico</Badge>
     }
   }
 
@@ -175,10 +175,7 @@ export default function AdminDoctorsPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-green-600" />
-          <p className="text-gray-600">Loading doctors...</p>
-        </div>
-      
-          <p className="text-gray-600">Loading doctors...</p>
+          <p className="text-gray-600">Cargando doctores...</p>
         </div>
       </div>
     )
@@ -190,10 +187,10 @@ export default function AdminDoctorsPage() {
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Doctors</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Error al Cargar Doctores</h2>
             <p className="text-gray-600 mb-4">{error}</p>
             <Button onClick={() => window.location.reload()} className="w-full">
-              Try Again
+              Intentar de Nuevo
             </Button>
           </CardContent>
         </Card>
@@ -207,12 +204,12 @@ export default function AdminDoctorsPage() {
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
             <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Acceso Denegado</h2>
             <p className="text-gray-600 mb-4">
-              You don't have permission to access this page.
+              No tienes permisos para acceder a esta página.
             </p>
             <Button onClick={() => router.push("/admin/login")} className="w-full">
-              Sign In
+              Iniciar Sesión
             </Button>
           </CardContent>
         </Card>
@@ -229,16 +226,16 @@ export default function AdminDoctorsPage() {
             <div className="flex items-center gap-4">
               <GoBackButton fallbackUrl="/admin/dashboard" />
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Doctor Management</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Gestión de Doctores</h1>
                 <p className="text-gray-600">
-                  Manage doctor registrations and profiles
+                  Administra registros y perfiles de doctores
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="flex items-center gap-1">
                 <Users className="h-3 w-3" />
-                {filteredDoctors.length} doctors
+                {filteredDoctors.length} doctores
               </Badge>
             </div>
           </div>
@@ -252,7 +249,7 @@ export default function AdminDoctorsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Filter className="h-5 w-5" />
-              Filters
+              Filtros
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -260,7 +257,7 @@ export default function AdminDoctorsPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Search doctors..."
+                  placeholder="Buscar doctores..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -269,23 +266,23 @@ export default function AdminDoctorsPage() {
               
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Filter by status" />
+                  <SelectValue placeholder="Filtrar por estado" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                  <SelectItem value="suspended">Suspended</SelectItem>
+                  <SelectItem value="all">Todos los Estados</SelectItem>
+                  <SelectItem value="pending">Pendiente</SelectItem>
+                  <SelectItem value="approved">Aprobado</SelectItem>
+                  <SelectItem value="rejected">Rechazado</SelectItem>
+                  <SelectItem value="suspended">Suspendido</SelectItem>
                 </SelectContent>
               </Select>
 
               <Select value={specialtyFilter} onValueChange={setSpecialtyFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Filter by specialty" />
+                  <SelectValue placeholder="Filtrar por especialidad" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Specialties</SelectItem>
+                  <SelectItem value="all">Todas las Especialidades</SelectItem>
                   {uniqueSpecialties.map((specialty) => (
                     <SelectItem key={specialty} value={specialty}>
                       {specialty}
@@ -302,11 +299,11 @@ export default function AdminDoctorsPage() {
           <Card>
             <CardContent className="p-12 text-center">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No doctors found</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No se encontraron doctores</h3>
               <p className="text-gray-600">
                 {searchTerm || statusFilter !== "all" || specialtyFilter !== "all"
-                  ? "Try adjusting your filters"
-                  : "No doctors have registered yet"}
+                  ? "Intenta ajustar tus filtros"
+                  : "Aún no se han registrado doctores"}
               </p>
             </CardContent>
           </Card>
@@ -348,26 +345,30 @@ export default function AdminDoctorsPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                         <div>
-                          <span className="font-medium text-gray-900">Experience:</span>
-                          <span className="text-gray-600 ml-1">{doctor.years_experience} years</span>
+                          <span className="font-medium text-gray-900">Experiencia:</span>
+                          <span className="text-gray-600 ml-1">{doctor.years_experience} años</span>
                         </div>
                         <div>
-                          <span className="font-medium text-gray-900">Phone:</span>
-                          <span className="text-gray-600 ml-1">{doctor.phone || "Not provided"}</span>
+                          <span className="font-medium text-gray-900">Teléfono:</span>
+                          <span className="text-gray-600 ml-1">{doctor.phone || "No proporcionado"}</span>
                         </div>
                         <div>
-                          <span className="font-medium text-gray-900">Languages:</span>
+                          <span className="font-medium text-gray-900">Idiomas:</span>
                           <span className="text-gray-600 ml-1">
-                            {doctor.languages?.join(", ") || "English"}
+                            {doctor.languages?.join(", ") || "Español"}
                           </span>
                         </div>
                         <div>
-                          <span className="font-medium text-gray-900">Registered:</span>
+                          <span className="font-medium text-gray-900">Registrado:</span>
                           <span className="text-gray-600 ml-1">
-                            {new Date(doctor.created_at).toLocaleDateString()}
+                            {new Date(doctor.created_at).toLocaleDateString('es-ES')}
                           </span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-900">Slug:</span>
+                          <span className="text-gray-600 ml-1">{doctor.slug || "No asignado"}</span>
                         </div>
                       </div>
 
@@ -391,7 +392,7 @@ export default function AdminDoctorsPage() {
                               ) : (
                                 <CheckCircle className="h-3 w-3 mr-1" />
                               )}
-                              Approve
+                              Aprobar
                             </Button>
                             <Button
                               size="sm"
@@ -405,7 +406,7 @@ export default function AdminDoctorsPage() {
                               ) : (
                                 <XCircle className="h-3 w-3 mr-1" />
                               )}
-                              Reject
+                              Rechazar
                             </Button>
                           </>
                         )}
@@ -423,7 +424,7 @@ export default function AdminDoctorsPage() {
                             ) : (
                               <XCircle className="h-3 w-3 mr-1" />
                             )}
-                            Suspend
+                            Suspender
                           </Button>
                         )}
 
@@ -439,7 +440,7 @@ export default function AdminDoctorsPage() {
                             ) : (
                               <CheckCircle className="h-3 w-3 mr-1" />
                             )}
-                            Reactivate
+                            Reactivar
                           </Button>
                         )}
 
@@ -453,8 +454,8 @@ export default function AdminDoctorsPage() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="basic">Basic</SelectItem>
-                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="basic">Básico</SelectItem>
+                            <SelectItem value="medium">Medio</SelectItem>
                             <SelectItem value="premium">Premium</SelectItem>
                           </SelectContent>
                         </Select>
@@ -469,7 +470,7 @@ export default function AdminDoctorsPage() {
                           >
                             <a href={`/doctors/${doctor.slug}`} target="_blank" rel="noopener noreferrer">
                               <Eye className="h-3 w-3 mr-1" />
-                              View Profile
+                              Ver Perfil
                             </a>
                           </Button>
                         )}

@@ -2,16 +2,19 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { testSupabaseConnection, getCurrentUser, supabase } from "@/lib/supabase"
+import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
 
 export default function TestConnectionPage() {
   const [connectionStatus, setConnectionStatus] = useState<"idle" | "testing" | "success" | "error">("idle")
   const [connectionError, setConnectionError] = useState<string | null>(null)
   const [userInfo, setUserInfo] = useState<any>(null)
   const [testResults, setTestResults] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [result, setResult] = useState<{ success: boolean; error: any } | null>(null)
 
   const runConnectionTest = async () => {
     setConnectionStatus("testing")
@@ -138,9 +141,16 @@ export default function TestConnectionPage() {
     }
   }
 
+  const runTest = async () => {
+    setLoading(true)
+    const testResult = await testSupabaseConnection()
+    setResult(testResult)
+    setLoading(false)
+  }
+
   useEffect(() => {
-    // Auto-run test on page load
     runConnectionTest()
+    runTest()
   }, [])
 
   const getStatusColor = (status: string) => {
@@ -234,6 +244,45 @@ export default function TestConnectionPage() {
                 If you see any errors, check the console for detailed logs or contact support.
               </p>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-center text-2xl">Prueba de Conexión a Supabase</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center">
+            {loading ? (
+              <div className="flex flex-col items-center gap-4 p-8">
+                <Loader2 className="h-12 w-12 animate-spin text-emerald-600" />
+                <p className="text-gray-600">Ejecutando prueba...</p>
+              </div>
+            ) : result ? (
+              <div className="flex flex-col items-center gap-4 p-8">
+                {result.success ? (
+                  <>
+                    <CheckCircle className="h-16 w-16 text-green-500" />
+                    <p className="text-xl font-semibold text-green-700">¡Conexión Exitosa!</p>
+                    <p className="text-gray-600">La aplicación se está comunicando correctamente con la base de datos.</p>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-16 w-16 text-red-500" />
+                    <p className="text-xl font-semibold text-red-700">Conexión Fallida</p>
+                    <p className="text-gray-600">No se pudo conectar a Supabase. Revisa las variables de entorno y la configuración de red.</p>
+                    {result.error && (
+                      <pre className="mt-4 w-full bg-red-50 text-red-800 p-2 rounded-md text-left text-xs overflow-x-auto">
+                        {JSON.stringify(result.error, null, 2)}
+                      </pre>
+                    )}
+                  </>
+                )}
+                <Button onClick={runTest} className="mt-4">
+                  Volver a Probar
+                </Button>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       </div>
