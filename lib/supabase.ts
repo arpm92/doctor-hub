@@ -279,48 +279,6 @@ export const doctorSignUp = async (
         return { data: null, error: { message: "Please enter a valid email address." } }
       }
 
-      // If it's a database error, try the fallback approach
-      if (authError.message.includes("Database error")) {
-        console.log("Database error detected, but user might have been created...")
-        
-        if (authData.user) {
-          console.log("User was created, attempting manual profile creation...")
-          
-          // Wait a moment for any async operations
-          await new Promise((resolve) => setTimeout(resolve, 2000))
-          
-          try {
-            const { data: rpcResult, error: rpcError } = await supabase.rpc('create_doctor_profile_v2', {
-              p_user_id: authData.user.id,
-              p_email: authData.user.email!,
-              p_first_name: doctorData.firstName.trim(),
-              p_last_name: doctorData.lastName.trim(),
-              p_phone: doctorData.phone.trim(),
-              p_specialty: doctorData.specialty.trim(),
-              p_years_experience: doctorData.yearsExperience,
-              p_bio: doctorData.bio?.trim() || null,
-            })
-
-            if (rpcError) {
-              console.error("RPC fallback failed:", rpcError)
-              return {
-                data: null,
-                error: { message: "Account created but profile setup failed. Please contact support." }
-              }
-            }
-
-            console.log("RPC fallback successful!")
-            return { data: authData, error: null }
-          } catch (fallbackErr) {
-            console.error("Fallback creation failed:", fallbackErr)
-            return {
-              data: null,
-              error: { message: "Account created but profile setup failed. Please contact support." }
-            }
-          }
-        }
-      }
-
       // Return the original error message for debugging
       return { data: null, error: { message: `Registration failed: ${authError.message}` } }
     }
@@ -331,56 +289,6 @@ export const doctorSignUp = async (
     }
 
     console.log("User account created successfully!")
-
-    // Wait a moment for the trigger to complete
-    await new Promise((resolve) => setTimeout(resolve, 3000))
-
-    // Verify the doctor profile was created by the trigger
-    console.log("Verifying doctor profile...")
-    const { data: verifyDoctor, error: verifyError } = await supabase
-      .from("doctors")
-      .select("*")
-      .eq("id", authData.user.id)
-      .maybeSingle()
-
-    if (verifyError) {
-      console.error("Doctor profile verification failed:", verifyError)
-    }
-
-    if (!verifyDoctor) {
-      console.log("Doctor profile not found, creating manually...")
-      
-      try {
-        const { data: rpcResult, error: rpcError } = await supabase.rpc('create_doctor_profile_v2', {
-          p_user_id: authData.user.id,
-          p_email: authData.user.email!,
-          p_first_name: doctorData.firstName.trim(),
-          p_last_name: doctorData.lastName.trim(),
-          p_phone: doctorData.phone.trim(),
-          p_specialty: doctorData.specialty.trim(),
-          p_years_experience: doctorData.yearsExperience,
-          p_bio: doctorData.bio?.trim() || null,
-        })
-
-        if (rpcError) {
-          console.error("Manual RPC creation failed:", rpcError)
-          return {
-            data: null,
-            error: { message: "Account created but profile setup failed. Please contact support." }
-          }
-        }
-
-        console.log("Manual RPC creation successful!")
-      } catch (manualErr) {
-        console.error("Manual creation exception:", manualErr)
-        return {
-          data: null,
-          error: { message: "Account created but profile setup failed. Please contact support." }
-        }
-      }
-    } else {
-      console.log("Doctor profile verified successfully:", verifyDoctor.id)
-    }
 
     console.log("=== DOCTOR SIGNUP COMPLETE ===")
     return { data: authData, error: null }

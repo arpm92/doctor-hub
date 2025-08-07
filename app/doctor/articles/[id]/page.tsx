@@ -270,7 +270,7 @@ export default function DoctorArticleEditPage() {
                     <FormItem>
                       <FormLabel>Resumen</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Breve resumen del artículo" className="min-h-[100px]" {...field} />
+                        <Textarea placeholder="Breve resumen del artículo" className="min-h-[100px]" {...field} value={field.value || ''} />
                       </FormControl>
                       <FormDescription>Un resumen corto que aparecerá en las listas de artículos.</FormDescription>
                       <FormMessage />

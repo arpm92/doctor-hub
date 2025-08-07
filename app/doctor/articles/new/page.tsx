@@ -135,7 +135,7 @@ export default function DoctorArticleNewPage() {
         title: "¡Artículo creado exitosamente!",
         description: "Tu nuevo artículo ha sido guardado.",
       })
-      router.push(`/doctor/articles/${data?.slug}`)
+      router.push(`/doctor/articles`)
     } catch (err) {
       console.error("Error creating article:", err)
       setError("Ocurrió un error inesperado")
@@ -235,7 +235,7 @@ export default function DoctorArticleNewPage() {
                     <FormItem>
                       <FormLabel>Resumen</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Breve resumen del artículo" className="min-h-[100px]" {...field} />
+                        <Textarea placeholder="Breve resumen del artículo" className="min-h-[100px]" {...field} value={field.value || ''} />
                       </FormControl>
                       <FormDescription>Un resumen corto que aparecerá en las listas de artículos.</FormDescription>
                       <FormMessage />

@@ -206,11 +206,7 @@ export default function DoctorLocationNewPage() {
                       <FormControl>
                         <Input 
                           placeholder="Ej: Consultorio Principal" 
-                          value={field.value}
-                          onChange={field.onChange}
-                          onBlur={field.onBlur}
-                          name={field.name}
-                          ref={field.ref}
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -227,11 +223,7 @@ export default function DoctorLocationNewPage() {
                       <FormControl>
                         <Input 
                           placeholder="Av. Principal #123" 
-                          value={field.value}
-                          onChange={field.onChange}
-                          onBlur={field.onBlur}
-                          name={field.name}
-                          ref={field.ref}
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -249,11 +241,7 @@ export default function DoctorLocationNewPage() {
                         <FormControl>
                           <Input 
                             placeholder="Caracas" 
-                            value={field.value}
-                            onChange={field.onChange}
-                            onBlur={field.onBlur}
-                            name={field.name}
-                            ref={field.ref}
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -270,11 +258,7 @@ export default function DoctorLocationNewPage() {
                         <FormControl>
                           <Input 
                             placeholder="Distrito Capital" 
-                            value={field.value}
-                            onChange={field.onChange}
-                            onBlur={field.onBlur}
-                            name={field.name}
-                            ref={field.ref}
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -293,11 +277,8 @@ export default function DoctorLocationNewPage() {
                         <FormControl>
                           <Input 
                             placeholder="1010" 
+                            {...field}
                             value={field.value || ""}
-                            onChange={field.onChange}
-                            onBlur={field.onBlur}
-                            name={field.name}
-                            ref={field.ref}
                           />
                         </FormControl>
                         <FormMessage />
@@ -314,11 +295,7 @@ export default function DoctorLocationNewPage() {
                         <FormControl>
                           <Input 
                             placeholder="Venezuela" 
-                            value={field.value}
-                            onChange={field.onChange}
-                            onBlur={field.onBlur}
-                            name={field.name}
-                            ref={field.ref}
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -336,11 +313,8 @@ export default function DoctorLocationNewPage() {
                       <FormControl>
                         <Input 
                           placeholder="+58 212 123-4567" 
+                          {...field}
                           value={field.value || ""}
-                          onChange={field.onChange}
-                          onBlur={field.onBlur}
-                          name={field.name}
-                          ref={field.ref}
                         />
                       </FormControl>
                       <FormMessage />
@@ -358,11 +332,8 @@ export default function DoctorLocationNewPage() {
                         <Input 
                           type="email" 
                           placeholder="email@ejemplo.com" 
+                          {...field}
                           value={field.value || ""}
-                          onChange={field.onChange}
-                          onBlur={field.onBlur}
-                          name={field.name}
-                          ref={field.ref}
                         />
                       </FormControl>
                       <FormMessage />
@@ -380,11 +351,8 @@ export default function DoctorLocationNewPage() {
                         <Input 
                           type="url" 
                           placeholder="https://ejemplo.com" 
+                          {...field}
                           value={field.value || ""}
-                          onChange={field.onChange}
-                          onBlur={field.onBlur}
-                          name={field.name}
-                          ref={field.ref}
                         />
                       </FormControl>
                       <FormDescription>Opcional - Deja en blanco si no tienes sitio web</FormDescription>
@@ -405,14 +373,12 @@ export default function DoctorLocationNewPage() {
                             type="number" 
                             step="any"
                             placeholder="10.4806" 
-                            value={field.value === null ? "" : field.value}
+                            {...field}
+                            value={field.value ?? ""}
                             onChange={(e) => {
                               const value = e.target.value;
                               field.onChange(value === "" ? null : parseFloat(value));
                             }}
-                            onBlur={field.onBlur}
-                            name={field.name}
-                            ref={field.ref}
                           />
                         </FormControl>
                         <FormDescription>Para mostrar en el mapa</FormDescription>
@@ -432,14 +398,12 @@ export default function DoctorLocationNewPage() {
                             type="number" 
                             step="any"
                             placeholder="-66.9036" 
-                            value={field.value === null ? "" : field.value}
+                            {...field}
+                            value={field.value ?? ""}
                             onChange={(e) => {
                               const value = e.target.value;
                               field.onChange(value === "" ? null : parseFloat(value));
                             }}
-                            onBlur={field.onBlur}
-                            name={field.name}
-                            ref={field.ref}
                           />
                         </FormControl>
                         <FormDescription>Para mostrar en el mapa</FormDescription>
