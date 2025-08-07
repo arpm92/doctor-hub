@@ -106,6 +106,46 @@ export interface AdminStats {
   recent_registrations: number
 }
 
+// Geocoding function to get coordinates from address
+export const geocodeAddress = async (address: string, city: string, state: string, country: string = "Venezuela") => {
+  try {
+    const fullAddress = `${address}, ${city}, ${state}, ${country}`
+    const encodedAddress = encodeURIComponent(fullAddress)
+    
+    // Using Nominatim (OpenStreetMap) geocoding service
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}&limit=1`
+    )
+    
+    if (!response.ok) {
+      throw new Error('Geocoding request failed')
+    }
+    
+    const data = await response.json()
+    
+    if (data && data.length > 0) {
+      return {
+        latitude: parseFloat(data[0].lat),
+        longitude: parseFloat(data[0].lon),
+        error: null
+      }
+    } else {
+      return {
+        latitude: null,
+        longitude: null,
+        error: "No coordinates found for this address"
+      }
+    }
+  } catch (error) {
+    console.error("Geocoding error:", error)
+    return {
+      latitude: null,
+      longitude: null,
+      error: "Failed to geocode address"
+    }
+  }
+}
+
 // Auth helper functions for patients
 export const signUp = async (
   email: string,
@@ -669,7 +709,23 @@ export const getDoctorLocations = async (doctorId: string) => {
 
 export const createDoctorLocation = async (location: Omit<DoctorLocation, "id" | "created_at" | "updated_at">) => {
   try {
-    const { data, error } = await supabase.from("doctor_locations").insert(location).select().single()
+    // Try to geocode the address if coordinates are not provided
+    let finalLocation = { ...location }
+    
+    if (!location.latitude || !location.longitude) {
+      console.log("Attempting to geocode address:", location.address, location.city, location.state)
+      const geocodeResult = await geocodeAddress(location.address, location.city, location.state, location.country)
+      
+      if (geocodeResult.latitude && geocodeResult.longitude) {
+        finalLocation.latitude = geocodeResult.latitude
+        finalLocation.longitude = geocodeResult.longitude
+        console.log("Geocoding successful:", geocodeResult)
+      } else {
+        console.warn("Geocoding failed:", geocodeResult.error)
+      }
+    }
+
+    const { data, error } = await supabase.from("doctor_locations").insert(finalLocation).select().single()
 
     if (error) {
       console.error("Error creating doctor location:", error)
@@ -685,6 +741,28 @@ export const createDoctorLocation = async (location: Omit<DoctorLocation, "id" |
 
 export const updateDoctorLocation = async (locationId: string, updates: Partial<Omit<DoctorLocation, 'id' | 'doctor_id'>>) => {
   try {
+    // If address-related fields are being updated, try to geocode
+    if (updates.address || updates.city || updates.state) {
+      const currentLocation = await getDoctorLocation(locationId)
+      if (currentLocation.location) {
+        const address = updates.address || currentLocation.location.address
+        const city = updates.city || currentLocation.location.city
+        const state = updates.state || currentLocation.location.state
+        const country = currentLocation.location.country
+
+        console.log("Attempting to geocode updated address:", address, city, state)
+        const geocodeResult = await geocodeAddress(address, city, state, country)
+        
+        if (geocodeResult.latitude && geocodeResult.longitude) {
+          updates.latitude = geocodeResult.latitude
+          updates.longitude = geocodeResult.longitude
+          console.log("Geocoding successful for update:", geocodeResult)
+        } else {
+          console.warn("Geocoding failed for update:", geocodeResult.error)
+        }
+      }
+    }
+
     const { data, error } = await supabase
       .from("doctor_locations")
       .update({ ...updates, updated_at: new Date().toISOString() })

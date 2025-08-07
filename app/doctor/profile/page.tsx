@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { toast } from "@/components/ui/use-toast"
 import { GoBackButton } from "@/components/go-back-button"
 import { Plus, X } from 'lucide-react'
@@ -262,11 +262,7 @@ export default function DoctorProfilePage() {
                           <FormControl>
                             <Input 
                               placeholder="Juan" 
-                              value={field.value}
-                              onChange={field.onChange}
-                              onBlur={field.onBlur}
-                              name={field.name}
-                              ref={field.ref}
+                              {...field}
                             />
                           </FormControl>
                           <FormMessage />
@@ -283,11 +279,7 @@ export default function DoctorProfilePage() {
                           <FormControl>
                             <Input 
                               placeholder="Pérez" 
-                              value={field.value}
-                              onChange={field.onChange}
-                              onBlur={field.onBlur}
-                              name={field.name}
-                              ref={field.ref}
+                              {...field}
                             />
                           </FormControl>
                           <FormMessage />
@@ -306,11 +298,7 @@ export default function DoctorProfilePage() {
                           <FormControl>
                             <Input 
                               placeholder="+58 212 123-4567" 
-                              value={field.value}
-                              onChange={field.onChange}
-                              onBlur={field.onBlur}
-                              name={field.name}
-                              ref={field.ref}
+                              {...field}
                             />
                           </FormControl>
                           <FormMessage />
@@ -328,11 +316,8 @@ export default function DoctorProfilePage() {
                             <Input 
                               type="number" 
                               placeholder="5" 
-                              value={field.value}
+                              {...field}
                               onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                              onBlur={field.onBlur}
-                              name={field.name}
-                              ref={field.ref}
                             />
                           </FormControl>
                           <FormMessage />
@@ -350,11 +335,7 @@ export default function DoctorProfilePage() {
                         <FormControl>
                           <Input 
                             placeholder="Cardiología" 
-                            value={field.value}
-                            onChange={field.onChange}
-                            onBlur={field.onBlur}
-                            name={field.name}
-                            ref={field.ref}
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -372,11 +353,8 @@ export default function DoctorProfilePage() {
                           <Textarea 
                             placeholder="Cuéntanos sobre ti, tu experiencia y tu enfoque médico..." 
                             className="min-h-[100px]"
+                            {...field}
                             value={field.value || ""}
-                            onChange={field.onChange}
-                            onBlur={field.onBlur}
-                            name={field.name}
-                            ref={field.ref}
                           />
                         </FormControl>
                         <FormMessage />
@@ -410,11 +388,7 @@ export default function DoctorProfilePage() {
                             <FormControl>
                               <Input 
                                 placeholder="Ej: Médico Cirujano - Universidad Central de Venezuela (2015)"
-                                value={field.value}
-                                onChange={field.onChange}
-                                onBlur={field.onBlur}
-                                name={field.name}
-                                ref={field.ref}
+                                {...field}
                               />
                             </FormControl>
                             <FormMessage />
@@ -458,11 +432,7 @@ export default function DoctorProfilePage() {
                             <FormControl>
                               <Input 
                                 placeholder="Ej: Especialista en Cardiología - Colegio de Médicos (2018)"
-                                value={field.value}
-                                onChange={field.onChange}
-                                onBlur={field.onBlur}
-                                name={field.name}
-                                ref={field.ref}
+                                {...field}
                               />
                             </FormControl>
                             <FormMessage />
@@ -506,11 +476,7 @@ export default function DoctorProfilePage() {
                             <FormControl>
                               <Input 
                                 placeholder="Ej: Español (Nativo), Inglés (Avanzado)"
-                                value={field.value}
-                                onChange={field.onChange}
-                                onBlur={field.onBlur}
-                                name={field.name}
-                                ref={field.ref}
+                                {...field}
                               />
                             </FormControl>
                             <FormMessage />
@@ -543,11 +509,8 @@ export default function DoctorProfilePage() {
                           <FormControl>
                             <Input 
                               placeholder="@tu_usuario" 
+                              {...field}
                               value={field.value || ""}
-                              onChange={field.onChange}
-                              onBlur={field.onBlur}
-                              name={field.name}
-                              ref={field.ref}
                             />
                           </FormControl>
                           <FormMessage />
@@ -560,15 +523,12 @@ export default function DoctorProfilePage() {
                       name="social_media.twitter"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Twitter</FormLabel>
+                          <FormLabel>X (Twitter)</FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="@tu_usuario" 
+                              {...field}
                               value={field.value || ""}
-                              onChange={field.onChange}
-                              onBlur={field.onBlur}
-                              name={field.name}
-                              ref={field.ref}
                             />
                           </FormControl>
                           <FormMessage />
@@ -585,11 +545,8 @@ export default function DoctorProfilePage() {
                           <FormControl>
                             <Input 
                               placeholder="tu.perfil" 
+                              {...field}
                               value={field.value || ""}
-                              onChange={field.onChange}
-                              onBlur={field.onBlur}
-                              name={field.name}
-                              ref={field.ref}
                             />
                           </FormControl>
                           <FormMessage />
@@ -606,11 +563,8 @@ export default function DoctorProfilePage() {
                           <FormControl>
                             <Input 
                               placeholder="tu-perfil" 
+                              {...field}
                               value={field.value || ""}
-                              onChange={field.onChange}
-                              onBlur={field.onBlur}
-                              name={field.name}
-                              ref={field.ref}
                             />
                           </FormControl>
                           <FormMessage />
