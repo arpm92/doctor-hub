@@ -255,10 +255,7 @@ export default function DoctorLocationEditPage() {
                     <FormItem>
                       <FormLabel>Nombre de la Ubicación</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="Ej: Consultorio Principal" 
-                          {...field}
-                        />
+                        <Input placeholder="Ej: Consultorio Principal" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -272,10 +269,7 @@ export default function DoctorLocationEditPage() {
                     <FormItem>
                       <FormLabel>Dirección</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="Av. Principal #123" 
-                          {...field}
-                        />
+                        <Input placeholder="Av. Principal #123" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -290,10 +284,7 @@ export default function DoctorLocationEditPage() {
                       <FormItem>
                         <FormLabel>Ciudad</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="Caracas" 
-                            {...field}
-                          />
+                          <Input placeholder="Caracas" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -307,10 +298,7 @@ export default function DoctorLocationEditPage() {
                       <FormItem>
                         <FormLabel>Estado/Provincia</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="Distrito Capital" 
-                            {...field}
-                          />
+                          <Input placeholder="Distrito Capital" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -344,10 +332,7 @@ export default function DoctorLocationEditPage() {
                       <FormItem>
                         <FormLabel>País</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="Venezuela" 
-                            {...field}
-                          />
+                          <Input placeholder="Venezuela" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

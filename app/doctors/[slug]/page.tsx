@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MapPin, Calendar, Clock, Languages, GraduationCap, Award, ArrowLeft, Star, Phone, Mail, Globe, Instagram, Twitter, Facebook, Linkedin } from 'lucide-react'
+import { MapPin, Calendar, Clock, Languages, GraduationCap, Award, Star, Phone, Mail, Globe, Instagram, Twitter, Facebook, Linkedin } from 'lucide-react'
 import { GoBackButton } from "@/components/go-back-button"
 import { supabase } from "@/lib/supabase"
 import { LeafletMap } from "@/components/leaflet-map"
@@ -79,12 +79,12 @@ export default async function DoctorProfilePage({ params }: DoctorProfilePagePro
   }
 
   const primaryLocation = doctor.doctor_locations?.find(loc => loc.is_primary) || doctor.doctor_locations?.[0]
-  const publishedArticles = doctor.doctor_articles?.filter(article => article.published_at) || []
+  const publishedArticles = doctor.doctor_articles?.filter(article => article.status === 'published') || []
   const socialMedia = doctor.social_media || {}
 
   const socialIcons = {
     instagram: Instagram,
-    twitter: Twitter, // We'll keep Twitter icon but update the label
+    twitter: Twitter,
     facebook: Facebook,
     linkedin: Linkedin,
   }
@@ -204,10 +204,14 @@ export default async function DoctorProfilePage({ params }: DoctorProfilePagePro
 
             {/* Tabs for additional information */}
             <Tabs defaultValue="education" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 h-12">
+              <TabsList className="grid w-full grid-cols-3 h-12">
                 <TabsTrigger value="education" className="flex items-center gap-2 text-base">
                   <GraduationCap className="h-5 w-5" />
                   Educación
+                </TabsTrigger>
+                <TabsTrigger value="certifications" className="flex items-center gap-2 text-base">
+                  <Award className="h-5 w-5" />
+                  Certificaciones
                 </TabsTrigger>
                 {publishedArticles.length > 0 && (
                   <TabsTrigger value="articles" className="flex items-center gap-2 text-base">
@@ -222,43 +226,51 @@ export default async function DoctorProfilePage({ params }: DoctorProfilePagePro
                   <CardHeader className="bg-emerald-50">
                     <CardTitle className="flex items-center gap-3 text-emerald-900 text-xl">
                       <GraduationCap className="h-6 w-6" />
-                      Educación y Certificaciones
+                      Educación
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 space-y-6">
-                    {doctor.education && doctor.education.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-4 text-lg">Educación</h4>
-                        <ul className="space-y-3">
-                          {doctor.education.map((edu, index) => (
-                            <li key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                              <GraduationCap className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
-                              <span className="text-gray-700">{edu}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    
-                    {doctor.certifications && doctor.certifications.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-4 text-lg">Certificaciones</h4>
-                        <ul className="space-y-3">
-                          {doctor.certifications.map((cert, index) => (
-                            <li key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                              <Award className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
-                              <span className="text-gray-700">{cert}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {(!doctor.education || doctor.education.length === 0) && 
-                     (!doctor.certifications || doctor.certifications.length === 0) && (
+                    {doctor.education && doctor.education.length > 0 ? (
+                      <ul className="space-y-3">
+                        {doctor.education.map((edu, index) => (
+                          <li key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                            <GraduationCap className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+                            <span className="text-gray-700">{edu}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
                       <div className="text-center py-8">
                         <GraduationCap className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                         <p className="text-gray-500 italic">Información educativa no disponible</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="certifications">
+                <Card className="border-emerald-200 shadow-md">
+                  <CardHeader className="bg-emerald-50">
+                    <CardTitle className="flex items-center gap-3 text-emerald-900 text-xl">
+                      <Award className="h-6 w-6" />
+                      Certificaciones
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-6">
+                    {doctor.certifications && doctor.certifications.length > 0 ? (
+                      <ul className="space-y-3">
+                        {doctor.certifications.map((cert, index) => (
+                          <li key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                            <Award className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+                            <span className="text-gray-700">{cert}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Award className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                        <p className="text-gray-500 italic">Certificaciones no disponibles</p>
                       </div>
                     )}
                   </CardContent>
@@ -280,7 +292,7 @@ export default async function DoctorProfilePage({ params }: DoctorProfilePagePro
                               <p className="text-gray-600 mb-3 leading-relaxed">{article.excerpt}</p>
                             )}
                             <div className="flex items-center gap-4 text-sm text-gray-500">
-                              <span>{new Date(article.published_at).toLocaleDateString('es-ES')}</span>
+                              <span>{new Date(article.published_at || article.created_at).toLocaleDateString('es-ES')}</span>
                               {article.read_time && <span>• {article.read_time} min de lectura</span>}
                             </div>
                           </div>

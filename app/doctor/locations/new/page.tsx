@@ -132,6 +132,11 @@ export default function DoctorLocationNewPage() {
 
       if (error) {
         setError("Error al crear la ubicación: " + error.message)
+        toast({
+          title: "Error al crear la ubicación",
+          description: error.message,
+          variant: "destructive",
+        })
         return
       }
 
@@ -143,6 +148,11 @@ export default function DoctorLocationNewPage() {
     } catch (err) {
       console.error("Error creating location:", err)
       setError("Ocurrió un error inesperado")
+      toast({
+        title: "Ocurrió un error inesperado",
+        description: "Por favor, inténtalo de nuevo.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -204,10 +214,7 @@ export default function DoctorLocationNewPage() {
                     <FormItem>
                       <FormLabel>Nombre de la Ubicación</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="Ej: Consultorio Principal" 
-                          {...field}
-                        />
+                        <Input placeholder="Ej: Consultorio Principal" value={field.value} onChange={field.onChange} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -221,10 +228,7 @@ export default function DoctorLocationNewPage() {
                     <FormItem>
                       <FormLabel>Dirección</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="Av. Principal #123" 
-                          {...field}
-                        />
+                        <Input placeholder="Av. Principal #123" value={field.value} onChange={field.onChange} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -239,10 +243,7 @@ export default function DoctorLocationNewPage() {
                       <FormItem>
                         <FormLabel>Ciudad</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="Caracas" 
-                            {...field}
-                          />
+                          <Input placeholder="Caracas" value={field.value} onChange={field.onChange} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -256,10 +257,7 @@ export default function DoctorLocationNewPage() {
                       <FormItem>
                         <FormLabel>Estado/Provincia</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="Distrito Capital" 
-                            {...field}
-                          />
+                          <Input placeholder="Distrito Capital" value={field.value} onChange={field.onChange} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -277,8 +275,8 @@ export default function DoctorLocationNewPage() {
                         <FormControl>
                           <Input 
                             placeholder="1010" 
-                            {...field}
                             value={field.value || ""}
+                            onChange={field.onChange}
                           />
                         </FormControl>
                         <FormMessage />
@@ -293,10 +291,7 @@ export default function DoctorLocationNewPage() {
                       <FormItem>
                         <FormLabel>País</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="Venezuela" 
-                            {...field}
-                          />
+                          <Input placeholder="Venezuela" value={field.value} onChange={field.onChange} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -313,8 +308,8 @@ export default function DoctorLocationNewPage() {
                       <FormControl>
                         <Input 
                           placeholder="+58 212 123-4567" 
-                          {...field}
                           value={field.value || ""}
+                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormMessage />
@@ -332,8 +327,8 @@ export default function DoctorLocationNewPage() {
                         <Input 
                           type="email" 
                           placeholder="email@ejemplo.com" 
-                          {...field}
                           value={field.value || ""}
+                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormMessage />
@@ -351,8 +346,8 @@ export default function DoctorLocationNewPage() {
                         <Input 
                           type="url" 
                           placeholder="https://ejemplo.com" 
-                          {...field}
                           value={field.value || ""}
+                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormDescription>Opcional - Deja en blanco si no tienes sitio web</FormDescription>
@@ -373,7 +368,6 @@ export default function DoctorLocationNewPage() {
                             type="number" 
                             step="any"
                             placeholder="10.4806" 
-                            {...field}
                             value={field.value ?? ""}
                             onChange={(e) => {
                               const value = e.target.value;
@@ -398,7 +392,6 @@ export default function DoctorLocationNewPage() {
                             type="number" 
                             step="any"
                             placeholder="-66.9036" 
-                            {...field}
                             value={field.value ?? ""}
                             onChange={(e) => {
                               const value = e.target.value;

@@ -206,7 +206,7 @@ export default function DoctorArticleNewPage() {
                       <FormItem>
                         <FormLabel>Título</FormLabel>
                         <FormControl>
-                          <Input placeholder="Título del Artículo" {...field} />
+                          <Input placeholder="Título del Artículo" value={field.value} onChange={field.onChange} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -219,7 +219,7 @@ export default function DoctorArticleNewPage() {
                       <FormItem>
                         <FormLabel>Slug</FormLabel>
                         <FormControl>
-                          <Input placeholder="slug-del-articulo" {...field} />
+                          <Input placeholder="slug-del-articulo" value={field.value} onChange={field.onChange} />
                         </FormControl>
                         <FormDescription>Se genera automáticamente desde el título. Se usa en la URL.</FormDescription>
                         <FormMessage />
@@ -235,7 +235,12 @@ export default function DoctorArticleNewPage() {
                     <FormItem>
                       <FormLabel>Resumen</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Breve resumen del artículo" className="min-h-[100px]" {...field} value={field.value || ''} />
+                        <Textarea 
+                          placeholder="Breve resumen del artículo" 
+                          className="min-h-[100px]" 
+                          value={field.value || ''} 
+                          onChange={field.onChange}
+                        />
                       </FormControl>
                       <FormDescription>Un resumen corto que aparecerá en las listas de artículos.</FormDescription>
                       <FormMessage />
