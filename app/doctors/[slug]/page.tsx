@@ -5,10 +5,28 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MapPin, Calendar, Clock, Languages, GraduationCap, Award, Star, Phone, Mail, Globe, Instagram, Twitter, Facebook, Linkedin } from 'lucide-react'
+import {
+  MapPin,
+  Calendar,
+  Clock,
+  Languages,
+  GraduationCap,
+  Award,
+  Star,
+  Phone,
+  Mail,
+  Globe,
+  Instagram,
+  Twitter,
+  Facebook,
+  Linkedin,
+} from "lucide-react"
 import { GoBackButton } from "@/components/go-back-button"
 import { supabase } from "@/lib/supabase"
 import { LeafletMap } from "@/components/leaflet-map"
+
+export const revalidate = 0;           // no ISR
+export const dynamic = "force-dynamic"; // force server-render each request
 
 interface DoctorProfilePageProps {
   params: {
@@ -16,71 +34,93 @@ interface DoctorProfilePageProps {
   }
 }
 
+// ---- Helpers to safely parse DB fields that might be JSON strings ----
+function parseJson(value: unknown): unknown {
+  if (Array.isArray(value) || (value && typeof value === "object")) return value
+  if (typeof value !== "string") return value
+  const v = value.trim()
+  if (!(v.startsWith("{") || v.startsWith("["))) return value
+  try {
+    return JSON.parse(v)
+  } catch {
+    return value
+  }
+}
+
+function toStringArray(value: unknown): string[] {
+  const v = parseJson(value)
+  return Array.isArray(v) ? v.map(String) : []
+}
+
+function toStringRecord(value: unknown): Record<string, string> {
+  const v = parseJson(value)
+  return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, string>) : {}
+}
+
 async function getDoctorBySlug(slug: string) {
   try {
-    console.log("Looking for doctor with slug:", slug)
-    
-    // First try to find by slug if the column exists
+    // First try by slug
     let { data: doctor, error } = await supabase
       .from("doctors")
-      .select(`
+      .select(
+        `
         *,
         doctor_locations (*),
         doctor_articles (*)
-      `)
+      `
+      )
       .eq("slug", slug)
       .eq("status", "approved")
       .single()
 
-    // If slug column doesn't exist or no result, try name-based lookup
+    // If slug lookup fails because column missing or no result, try name-based
     if (error && (error.code === "42703" || error.code === "PGRST116")) {
-      console.log("Trying name-based lookup")
       const nameParts = slug.split("-")
       if (nameParts.length >= 2) {
         const firstName = nameParts[0]
         const lastName = nameParts.slice(1).join("-")
-        
         const { data: doctorByName, error: nameError } = await supabase
           .from("doctors")
-          .select(`
+          .select(
+            `
             *,
             doctor_locations (*),
             doctor_articles (*)
-          `)
+          `
+          )
           .ilike("first_name", firstName)
           .ilike("last_name", lastName)
           .eq("status", "approved")
           .single()
-
-        if (nameError) {
-          console.error("Error fetching doctor by name:", nameError)
-          return null
-        }
-
+        if (nameError) return null
         doctor = doctorByName
       }
     } else if (error) {
-      console.error("Error fetching doctor:", error)
       return null
     }
 
     return doctor
-  } catch (error) {
-    console.error("Unexpected error:", error)
+  } catch {
     return null
   }
 }
 
 export default async function DoctorProfilePage({ params }: DoctorProfilePageProps) {
   const doctor = await getDoctorBySlug(params.slug)
+  if (!doctor) notFound()
 
-  if (!doctor) {
-    notFound()
-  }
+  // Normalize fields that might be stored as JSON strings
+  const education = toStringArray(doctor.education)
+  const certifications = toStringArray(doctor.certifications)
+  const languages = toStringArray(doctor.languages)
+  const socialMedia = toStringRecord(doctor.social_media)
 
-  const primaryLocation = doctor.doctor_locations?.find(loc => loc.is_primary) || doctor.doctor_locations?.[0]
-  const publishedArticles = doctor.doctor_articles?.filter(article => article.status === 'published') || []
-  const socialMedia = doctor.social_media || {}
+  const primaryLocation =
+    doctor.doctor_locations?.find((loc: any) => loc.is_primary) ||
+    doctor.doctor_locations?.[0]
+
+  const publishedArticles =
+    doctor.doctor_articles?.filter((a: any) => a.status === "published") || []
 
   const socialIcons = {
     instagram: Instagram,
@@ -92,7 +132,7 @@ export default async function DoctorProfilePage({ params }: DoctorProfilePagePro
   const socialLabels = {
     instagram: "Instagram",
     twitter: "X (Twitter)",
-    facebook: "Facebook", 
+    facebook: "Facebook",
     linkedin: "LinkedIn",
   }
 
@@ -100,7 +140,7 @@ export default async function DoctorProfilePage({ params }: DoctorProfilePagePro
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
         <GoBackButton />
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
           {/* Main Profile Section */}
           <div className="lg:col-span-2 space-y-6">
@@ -110,14 +150,17 @@ export default async function DoctorProfilePage({ params }: DoctorProfilePagePro
                   <div className="flex-shrink-0">
                     <div className="w-40 h-40 relative rounded-full overflow-hidden border-4 border-emerald-100">
                       <Image
-                        src={doctor.profile_image || "/placeholder.svg?height=200&width=200&text=Doctor"}
+                        src={
+                          doctor.profile_image ||
+                          "/placeholder.svg?height=200&width=200&text=Doctor"
+                        }
                         alt={`Dr. ${doctor.first_name} ${doctor.last_name}`}
                         fill
                         className="object-cover"
                       />
                     </div>
                   </div>
-                  
+
                   <div className="flex-1 space-y-6">
                     <div>
                       <div className="flex items-center gap-3 mb-3">
@@ -125,13 +168,21 @@ export default async function DoctorProfilePage({ params }: DoctorProfilePagePro
                           Dr. {doctor.first_name} {doctor.last_name}
                         </h1>
                         <Badge
-                          variant={doctor.tier === "premium" ? "default" : doctor.tier === "medium" ? "secondary" : "outline"}
+                          variant={
+                            doctor.tier === "premium"
+                              ? "default"
+                              : doctor.tier === "medium"
+                              ? "secondary"
+                              : "outline"
+                          }
                           className="capitalize text-sm px-3 py-1"
                         >
                           {doctor.tier || "básico"}
                         </Badge>
                       </div>
-                      <p className="text-2xl text-emerald-600 font-semibold mb-3">{doctor.specialty}</p>
+                      <p className="text-2xl text-emerald-600 font-semibold mb-3">
+                        {doctor.specialty}
+                      </p>
                       <div className="flex items-center gap-2 mb-4">
                         <div className="flex items-center gap-1">
                           <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
@@ -149,12 +200,14 @@ export default async function DoctorProfilePage({ params }: DoctorProfilePagePro
                       {primaryLocation && (
                         <div className="flex items-center gap-3 text-gray-700">
                           <MapPin className="h-5 w-5 text-emerald-600" />
-                          <span>{primaryLocation.city}, {primaryLocation.state}</span>
+                          <span>
+                            {primaryLocation.city}, {primaryLocation.state}
+                          </span>
                         </div>
                       )}
                       <div className="flex items-center gap-3 text-gray-700">
                         <Languages className="h-5 w-5 text-emerald-600" />
-                        <span>{(doctor.languages || ["Español"]).join(", ")}</span>
+                        <span>{(languages.length ? languages : ["Español"]).join(", ")}</span>
                       </div>
                       {doctor.phone && (
                         <div className="flex items-center gap-3 text-gray-700">
@@ -165,25 +218,24 @@ export default async function DoctorProfilePage({ params }: DoctorProfilePagePro
                     </div>
 
                     {/* Social Media Links */}
-                    {Object.entries(socialMedia).some(([_, url]) => url) && (
+                    {Object.entries(socialMedia).some(([, url]) => !!url) && (
                       <div className="flex items-center gap-4">
                         <span className="text-base text-gray-700 font-medium">Sígueme:</span>
                         <div className="flex gap-3">
                           {Object.entries(socialMedia).map(([platform, url]) => {
-                            const IconComponent = socialIcons[platform as keyof typeof socialIcons]
+                            const Icon = socialIcons[platform as keyof typeof socialIcons]
                             const label = socialLabels[platform as keyof typeof socialLabels]
-                            if (!IconComponent || !url) return null
-                            
+                            if (!Icon || !url) return null
                             return (
                               <a
                                 key={platform}
-                                href={url as string}
+                                href={url}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="p-3 rounded-full bg-gray-100 hover:bg-emerald-100 transition-colors group"
                                 title={label}
                               >
-                                <IconComponent className="h-5 w-5 text-gray-600 group-hover:text-emerald-600" />
+                                <Icon className="h-5 w-5 text-gray-600 group-hover:text-emerald-600" />
                               </a>
                             )
                           })}
@@ -193,8 +245,12 @@ export default async function DoctorProfilePage({ params }: DoctorProfilePagePro
 
                     {doctor.bio && (
                       <div className="bg-emerald-50 p-6 rounded-lg border border-emerald-100">
-                        <h3 className="font-semibold text-gray-900 mb-3 text-lg">Acerca de mí</h3>
-                        <p className="text-gray-700 leading-relaxed text-base">{doctor.bio}</p>
+                        <h3 className="font-semibold text-gray-900 mb-3 text-lg">
+                          Acerca de mí
+                        </h3>
+                        <p className="text-gray-700 leading-relaxed text-base">
+                          {doctor.bio}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -230,10 +286,13 @@ export default async function DoctorProfilePage({ params }: DoctorProfilePagePro
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 space-y-6">
-                    {doctor.education && doctor.education.length > 0 ? (
+                    {education.length > 0 ? (
                       <ul className="space-y-3">
-                        {doctor.education.map((edu, index) => (
-                          <li key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                        {education.map((edu, index) => (
+                          <li
+                            key={index}
+                            className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
+                          >
                             <GraduationCap className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
                             <span className="text-gray-700">{edu}</span>
                           </li>
@@ -242,7 +301,9 @@ export default async function DoctorProfilePage({ params }: DoctorProfilePagePro
                     ) : (
                       <div className="text-center py-8">
                         <GraduationCap className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                        <p className="text-gray-500 italic">Información educativa no disponible</p>
+                        <p className="text-gray-500 italic">
+                          Información educativa no disponible
+                        </p>
                       </div>
                     )}
                   </CardContent>
@@ -258,10 +319,13 @@ export default async function DoctorProfilePage({ params }: DoctorProfilePagePro
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 space-y-6">
-                    {doctor.certifications && doctor.certifications.length > 0 ? (
+                    {certifications.length > 0 ? (
                       <ul className="space-y-3">
-                        {doctor.certifications.map((cert, index) => (
-                          <li key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                        {certifications.map((cert, index) => (
+                          <li
+                            key={index}
+                            className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
+                          >
                             <Award className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
                             <span className="text-gray-700">{cert}</span>
                           </li>
@@ -270,7 +334,9 @@ export default async function DoctorProfilePage({ params }: DoctorProfilePagePro
                     ) : (
                       <div className="text-center py-8">
                         <Award className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                        <p className="text-gray-500 italic">Certificaciones no disponibles</p>
+                        <p className="text-gray-500 italic">
+                          Certificaciones no disponibles
+                        </p>
                       </div>
                     )}
                   </CardContent>
@@ -285,15 +351,28 @@ export default async function DoctorProfilePage({ params }: DoctorProfilePagePro
                     </CardHeader>
                     <CardContent className="p-6">
                       <div className="space-y-6">
-                        {publishedArticles.slice(0, 3).map((article) => (
-                          <div key={article.id} className="border-b border-gray-200 last:border-b-0 pb-6 last:pb-0">
-                            <h4 className="font-semibold text-gray-900 mb-2 text-lg">{article.title}</h4>
+                        {publishedArticles.slice(0, 3).map((article: any) => (
+                          <div
+                            key={article.id}
+                            className="border-b border-gray-200 last:border-b-0 pb-6 last:pb-0"
+                          >
+                            <h4 className="font-semibold text-gray-900 mb-2 text-lg">
+                              {article.title}
+                            </h4>
                             {article.excerpt && (
-                              <p className="text-gray-600 mb-3 leading-relaxed">{article.excerpt}</p>
+                              <p className="text-gray-600 mb-3 leading-relaxed">
+                                {article.excerpt}
+                              </p>
                             )}
                             <div className="flex items-center gap-4 text-sm text-gray-500">
-                              <span>{new Date(article.published_at || article.created_at).toLocaleDateString('es-ES')}</span>
-                              {article.read_time && <span>• {article.read_time} min de lectura</span>}
+                              <span>
+                                {new Date(
+                                  article.published_at || article.created_at
+                                ).toLocaleDateString("es-ES")}
+                              </span>
+                              {article.read_time && (
+                                <span>• {article.read_time} min de lectura</span>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -311,17 +390,17 @@ export default async function DoctorProfilePage({ params }: DoctorProfilePagePro
             <Card className="shadow-md">
               <CardContent className="p-6">
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-900 text-lg">Reservar una Cita</h3>
-                  
+                  <h3 className="font-semibold text-gray-900 text-lg">
+                    Reservar una Cita
+                  </h3>
+
                   <div className="text-center py-6">
                     <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                     <p className="text-gray-600 text-sm mb-4">
                       El sistema de reservas estará disponible próximamente.
                     </p>
                     <Button variant="outline" asChild className="w-full">
-                      <Link href="/contact">
-                        Contáctanos
-                      </Link>
+                      <Link href="/contact">Contáctanos</Link>
                     </Button>
                   </div>
                 </div>
@@ -338,11 +417,13 @@ export default async function DoctorProfilePage({ params }: DoctorProfilePagePro
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {doctor.doctor_locations.map((location) => (
+                  {doctor.doctor_locations.map((location: any) => (
                     <div key={location.id} className="space-y-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900 mb-2">{location.name}</h4>
+                          <h4 className="font-semibold text-gray-900 mb-2">
+                            {location.name}
+                          </h4>
                           <p className="text-gray-600 text-sm mb-3">
                             {location.address && `${location.address}, `}
                             {location.city}, {location.state}
@@ -364,7 +445,12 @@ export default async function DoctorProfilePage({ params }: DoctorProfilePagePro
                             {location.website && (
                               <div className="flex items-center gap-2">
                                 <Globe className="h-4 w-4" />
-                                <a href={location.website} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:text-emerald-700">
+                                <a
+                                  href={location.website}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-emerald-600 hover:text-emerald-700"
+                                >
                                   Sitio Web
                                 </a>
                               </div>
@@ -377,39 +463,43 @@ export default async function DoctorProfilePage({ params }: DoctorProfilePagePro
                           </Badge>
                         )}
                       </div>
-                      
+
                       {/* Map for location */}
                       {location.latitude && location.longitude && (
                         <div className="mt-4">
                           <div className="h-48 rounded-lg overflow-hidden border">
                             <LeafletMap
-                              doctors={[{
-                                id: doctor.id,
-                                slug: doctor.slug || `${doctor.first_name}-${doctor.last_name}`.toLowerCase(),
-                                name: `${doctor.first_name} ${doctor.last_name}`,
-                                specialty: doctor.specialty,
-                                tier: doctor.tier,
-                                bio: doctor.bio || "",
-                                image: doctor.profile_image || "",
-                                location: {
-                                  address: location.address || "",
-                                  city: location.city,
-                                  state: location.state,
-                                  coordinates: {
-                                    lat: location.latitude,
-                                    lng: location.longitude
-                                  }
+                              doctors={[
+                                {
+                                  id: doctor.id,
+                                  slug:
+                                    doctor.slug ||
+                                    `${doctor.first_name}-${doctor.last_name}`.toLowerCase(),
+                                  name: `${doctor.first_name} ${doctor.last_name}`,
+                                  specialty: doctor.specialty,
+                                  tier: doctor.tier,
+                                  bio: doctor.bio || "",
+                                  image: doctor.profile_image || "",
+                                  location: {
+                                    address: location.address || "",
+                                    city: location.city,
+                                    state: location.state,
+                                    coordinates: {
+                                      lat: location.latitude,
+                                      lng: location.longitude,
+                                    },
+                                  },
+                                  education,
+                                  experience: `${doctor.years_experience} años`,
+                                  languages,
+                                  certifications,
+                                  socialMedia,
+                                  blogPosts: [],
+                                  reviews: [],
+                                  averageRating: 4.8,
+                                  totalReviews: 127,
                                 },
-                                education: doctor.education || [],
-                                experience: `${doctor.years_experience} años`,
-                                languages: doctor.languages || [],
-                                certifications: doctor.certifications || [],
-                                socialMedia: doctor.social_media || {},
-                                blogPosts: [],
-                                reviews: [],
-                                averageRating: 4.8,
-                                totalReviews: 127
-                              }]}
+                              ]}
                               height="192px"
                               zoom={15}
                               center={[location.latitude, location.longitude]}
